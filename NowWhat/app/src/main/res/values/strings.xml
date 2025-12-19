@@ -1,0 +1,127 @@
+<resources>
+    <string name="app_name">NowWhat</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Welcome to NowWhat</string>
+    <string name="onboarding_subtitle">Let\'s optimize your workflow</string>
+    <string name="onboarding_title">Let\'s set up your profile</string>
+    <string name="onboarding_name_label">What\'s your name?</string>
+    <string name="onboarding_name_hint">e.g., John</string>
+    <string name="onboarding_role_label">What\'s your role?</string>
+    <string name="onboarding_role_hint">e.g., Manager, Developer</string>
+    <string name="onboarding_gender_label">Gender (optional)</string>
+    <string name="onboarding_language_label">App Language</string>
+    <string name="onboarding_work_hours">Working Hours</string>
+    <string name="onboarding_work_days">Working Days</string>
+    <string name="onboarding_focus_dnd">Focus Mode DND Duration</string>
+    <string name="onboarding_start_button">Start My Journey →</string>
+    <string name="time_start">Start</string>
+    <string name="time_end">End</string>
+
+    <!-- Gender -->
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="gender_not_specified">Not Specified</string>
+
+    <!-- Languages -->
+    <string name="language_english">English</string>
+    <string name="language_hebrew">עברית</string>
+    <string name="language_russian">Русский</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Sun</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting_morning">Good morning</string>
+    <string name="dashboard_greeting_afternoon">Good afternoon</string>
+    <string name="dashboard_greeting_evening">Good evening</string>
+    <string name="dashboard_subtitle">What should you do now?</string>
+    <string name="dashboard_recommended_focus">🎯 Recommended Focus</string>
+    <string name="dashboard_daily_capacity">📊 Daily Capacity</string>
+    <string name="dashboard_todays_schedule">📅 Today\'s Schedule</string>
+    <string name="dashboard_overview">📈 Overview</string>
+    <string name="dashboard_total_progress">🎯 Total Progress</string>
+    <string name="dashboard_view_all_projects">View All Projects →</string>
+    <string name="dashboard_workload">Workload</string>
+    <string name="dashboard_free_time">Free Time</string>
+    <string name="dashboard_complete">Complete</string>
+    <string name="dashboard_tasks_done">Tasks Done: %1$d / %2$d</string>
+    <string name="dashboard_critical_tasks">Critical Tasks</string>
+    <string name="dashboard_at_risk">At Risk</string>
+    <string name="dashboard_no_tasks">No urgent tasks right now! 🎉</string>
+    <string name="dashboard_create_task">Create your first task</string>
+    <string name="dashboard_after_hours">After hours</string>
+    <string name="dashboard_more_events">+%d more events</string>
+    <!-- Projects Screen -->
+    <string name="projects_title">Projects</string>
+    <string name="projects_all">All</string>
+    <string name="projects_active">Active</string>
+    <string name="projects_completed">Completed</string>
+    <string name="projects_at_risk">At Risk</string>
+    <string name="projects_add">Add Project</string>
+    <string name="projects_no_projects">No projects yet</string>
+    <string name="projects_create_first">Create your first project</string>
+    <string name="projects_search">Search projects...</string>
+    <string name="projects_progress">Progress</string>
+    <string name="projects_tasks">tasks</string>
+    <string name="projects_deadline">Deadline</string>
+    <string name="projects_overdue">Overdue</string>
+    <string name="projects_due_today">Due today</string>
+    <string name="projects_due_in">Due in %d days</string>
+
+    <!-- Create Project Dialog -->
+    <string name="create_project_title">Create New Project</string>
+    <string name="create_project_name">Project Name</string>
+    <string name="create_project_name_hint">Enter project name</string>
+    <string name="create_project_description">Description (Optional)</string>
+    <string name="create_project_description_hint">Enter project description</string>
+    <string name="create_project_deadline">Deadline</string>
+    <string name="create_project_select_deadline">Select deadline</string>
+    <string name="create_project_cancel">Cancel</string>
+    <string name="create_project_create">Create</string>
+    <string name="create_project_error_name">Please enter project name</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_title">Create New Task</string>
+    <string name="create_task_name">Task Name</string>
+    <string name="create_task_name_hint">Enter task name</string>
+    <string name="create_task_project">Project</string>
+    <string name="create_task_select_project">Select project</string>
+    <string name="create_task_priority">Priority</string>
+    <string name="create_task_severity">Severity</string>
+    <string name="create_task_deadline">Deadline</string>
+    <string name="create_task_estimated_hours">Estimated Hours</string>
+    <string name="create_task_estimated_hint">e.g., 2.5</string>
+    <string name="create_task_description">Description (Optional)</string>
+    <string name="create_task_description_hint">Enter task description</string>
+    <string name="create_task_cancel">Cancel</string>
+    <string name="create_task_create">Create</string>
+    <string name="create_task_error_name">Please enter task name</string>
+    <string name="create_task_error_project">Please select a project</string>
+
+    <!-- Priority -->
+    <string name="priority_immediate">Immediate</string>
+    <string name="priority_high">High</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_low">Low</string>
+
+    <!-- Severity -->
+    <string name="severity_critical">Critical</string>
+    <string name="severity_high">High</string>
+    <string name="severity_medium">Medium</string>
+    <string name="severity_low">Low</string>
+
+    <!-- Risk Status -->
+    <string name="risk_at_risk">At Risk</string>
+    <string name="risk_warning">Warning</string>
+    <string name="risk_on_track">On Track</string>
+    <!-- Common -->
+    <string name="common_hour_short">h</string>
+    <string name="common_minute_short">m</string>
+</resources>

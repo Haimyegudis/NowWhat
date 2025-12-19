@@ -1,0 +1,126 @@
+<resources>
+    <string name="app_name">Что Сейчас</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Добро пожаловать в NowWhat</string>
+    <string name="onboarding_subtitle">Оптимизируем ваш рабочий процесс</string>
+    <string name="onboarding_title">Давайте настроим ваш профиль</string>
+    <string name="onboarding_name_label">Как вас зовут?</string>
+    <string name="onboarding_name_hint">например: Иван</string>
+    <string name="onboarding_role_label">Какая ваша должность?</string>
+    <string name="onboarding_role_hint">например: Менеджер, Разработчик</string>
+    <string name="onboarding_gender_label">Пол (необязательно)</string>
+    <string name="onboarding_language_label">Язык приложения</string>
+    <string name="onboarding_work_hours">Рабочие часы</string>
+    <string name="onboarding_work_days">Рабочие дни</string>
+    <string name="onboarding_focus_dnd">Длительность режима фокуса</string>
+    <string name="onboarding_start_button">Начать →</string>
+    <string name="time_start">Начало</string>
+    <string name="time_end">Конец</string>
+
+    <!-- Gender -->
+    <string name="gender_male">Мужской</string>
+    <string name="gender_female">Женский</string>
+    <string name="gender_not_specified">Не указан</string>
+
+    <!-- Languages -->
+    <string name="language_english">English</string>
+    <string name="language_hebrew">עברית</string>
+    <string name="language_russian">Русский</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting_morning">Доброе утро</string>
+    <string name="dashboard_greeting_afternoon">Добрый день</string>
+    <string name="dashboard_greeting_evening">Добрый вечер</string>
+    <string name="dashboard_subtitle">Что делать сейчас?</string>
+    <string name="dashboard_recommended_focus">🎯 Рекомендуемая задача</string>
+    <string name="dashboard_daily_capacity">📊 Дневная нагрузка</string>
+    <string name="dashboard_todays_schedule">📅 Расписание на сегодня</string>
+    <string name="dashboard_overview">📈 Обзор</string>
+    <string name="dashboard_total_progress">🎯 Общий прогресс</string>
+    <string name="dashboard_view_all_projects">Все проекты →</string>
+    <string name="dashboard_workload">Нагрузка</string>
+    <string name="dashboard_free_time">Свободное время</string>
+    <string name="dashboard_complete">Завершено</string>
+    <string name="dashboard_tasks_done">Задач выполнено: %1$d / %2$d</string>
+    <string name="dashboard_critical_tasks">Критические задачи</string>
+    <string name="dashboard_at_risk">В опасности</string>
+    <string name="dashboard_no_tasks">Срочных задач нет! 🎉</string>
+    <string name="dashboard_create_task">Создайте первую задачу</string>
+    <string name="dashboard_after_hours">Вне рабочих часов</string>
+    <string name="dashboard_more_events">+%d событий</string>
+    <!-- Projects Screen -->
+    <string name="projects_title">Проекты</string>
+    <string name="projects_all">Все</string>
+    <string name="projects_active">Активные</string>
+    <string name="projects_completed">Завершенные</string>
+    <string name="projects_at_risk">В опасности</string>
+    <string name="projects_add">Добавить проект</string>
+    <string name="projects_no_projects">Проектов пока нет</string>
+    <string name="projects_create_first">Создайте свой первый проект</string>
+    <string name="projects_search">Поиск проектов...</string>
+    <string name="projects_progress">Прогресс</string>
+    <string name="projects_tasks">задач</string>
+    <string name="projects_deadline">Крайний срок</string>
+    <string name="projects_overdue">Просрочено</string>
+    <string name="projects_due_today">Сегодня</string>
+    <string name="projects_due_in">Через %d дн.</string>
+
+    <!-- Create Project Dialog -->
+    <string name="create_project_title">Создать новый проект</string>
+    <string name="create_project_name">Название проекта</string>
+    <string name="create_project_name_hint">Введите название</string>
+    <string name="create_project_description">Описание (необязательно)</string>
+    <string name="create_project_description_hint">Введите описание</string>
+    <string name="create_project_deadline">Крайний срок</string>
+    <string name="create_project_select_deadline">Выберите срок</string>
+    <string name="create_project_cancel">Отмена</string>
+    <string name="create_project_create">Создать</string>
+    <string name="create_project_error_name">Введите название проекта</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_title">Создать новую задачу</string>
+    <string name="create_task_name">Название задачи</string>
+    <string name="create_task_name_hint">Введите название</string>
+    <string name="create_task_project">Проект</string>
+    <string name="create_task_select_project">Выберите проект</string>
+    <string name="create_task_priority">Приоритет</string>
+    <string name="create_task_severity">Важность</string>
+    <string name="create_task_deadline">Крайний срок</string>
+    <string name="create_task_estimated_hours">Оценка часов</string>
+    <string name="create_task_estimated_hint">напр., 2.5</string>
+    <string name="create_task_description">Описание (необязательно)</string>
+    <string name="create_task_description_hint">Введите описание</string>
+    <string name="create_task_cancel">Отмена</string>
+    <string name="create_task_create">Создать</string>
+    <string name="create_task_error_name">Введите название задачи</string>
+    <string name="create_task_error_project">Выберите проект</string>
+
+    <!-- Priority -->
+    <string name="priority_immediate">Немедленно</string>
+    <string name="priority_high">Высокий</string>
+    <string name="priority_medium">Средний</string>
+    <string name="priority_low">Низкий</string>
+
+    <!-- Severity -->
+    <string name="severity_critical">Критическая</string>
+    <string name="severity_high">Высокая</string>
+    <string name="severity_medium">Средняя</string>
+    <string name="severity_low">Низкая</string>
+
+    <!-- Risk Status -->
+    <string name="risk_at_risk">В опасности</string>
+    <string name="risk_warning">Предупреждение</string>
+    <string name="risk_on_track">В плане</string>
+    <!-- Common -->
+    <string name="common_hour_short">ч</string>
+    <string name="common_minute_short">м</string>
+    <!-- Days of week -->
+    <string name="day_sun">Вс</string>
+    <string name="day_mon">Пн</string>
+    <string name="day_tue">Вт</string>
+    <string name="day_wed">Ср</string>
+    <string name="day_thu">Чт</string>
+    <string name="day_fri">Пт</string>
+    <string name="day_sat">Сб</string>
+</resources>
