@@ -180,13 +180,8 @@ fun SettingsScreen(
                             FilterChip(
                                 selected = selectedLanguage == language,
                                 onClick = {
-                                    if (selectedLanguage != language) {
-                                        selectedLanguage = language
-                                        // Save and recreate activity
-                                        val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-                                        sharedPrefs.edit().putString("language", language.name).apply()
-                                        activity?.recreate()
-                                    }
+                                    selectedLanguage = language
+
                                 },
                                 label = { Text(getLanguageDisplayName(language)) },
                                 modifier = Modifier.weight(1f)
@@ -315,7 +310,15 @@ fun SettingsScreen(
                             focusDndMinutes = focusDuration
                         )
                         onSaveSettings(updatedUser)
-                        showSavedSnackbar = true
+
+                        // Change language and restart
+                        if (selectedLanguage != user.language) {
+                            val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+                            sharedPrefs.edit().putString("language", selectedLanguage.name).apply()
+                            activity?.recreate()
+                        } else {
+                            showSavedSnackbar = true
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
