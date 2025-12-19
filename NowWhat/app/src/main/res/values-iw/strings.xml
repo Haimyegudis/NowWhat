@@ -24,6 +24,24 @@
     <string name="gender_female">נקבה</string>
     <string name="gender_not_specified">לא צוין</string>
 
+    <!-- Languages -->
+    <string name="language_english">English</string>
+    <string name="language_hebrew">עברית</string>
+    <string name="language_russian">Русский</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">א׳</string>
+    <string name="day_mon">ב׳</string>
+    <string name="day_tue">ג׳</string>
+    <string name="day_wed">ד׳</string>
+    <string name="day_thu">ה׳</string>
+    <string name="day_fri">ו׳</string>
+    <string name="day_sat">ש׳</string>
+
+    <!-- Common -->
+    <string name="common_hour_short">שע\'</string>
+    <string name="common_minute_short">דק\'</string>
+
     <!-- Dashboard -->
     <string name="dashboard_greeting_morning">בוקר טוב</string>
     <string name="dashboard_greeting_afternoon">צהריים טובים</string>
@@ -46,14 +64,6 @@
     <string name="dashboard_after_hours">מחוץ לשעות עבודה</string>
     <string name="dashboard_more_events">+%d אירועים נוספים</string>
 
-
-    <!-- Common -->
-    <string name="common_hour_short">שע\'</string>
-    <string name="common_minute_short">דק\'</string>
-    <!-- Languages -->
-    <string name="language_english">English</string>
-    <string name="language_hebrew">עברית</string>
-    <string name="language_russian">Русский</string>
     <!-- Projects Screen -->
     <string name="projects_title">פרויקטים</string>
     <string name="projects_all">הכל</string>
@@ -106,6 +116,18 @@
     <string name="priority_high">גבוה</string>
     <string name="priority_medium">בינוני</string>
     <string name="priority_low">נמוך</string>
+
+    <!-- Severity -->
+    <string name="severity_critical">קריטי</string>
+    <string name="severity_high">גבוה</string>
+    <string name="severity_medium">בינוני</string>
+    <string name="severity_low">נמוך</string>
+
+    <!-- Risk Status -->
+    <string name="risk_at_risk">בסיכון</string>
+    <string name="risk_warning">אזהרה</string>
+    <string name="risk_on_track">על המסלול</string>
+
     <!-- Project Detail Screen -->
     <string name="project_detail_title">פרטי פרויקט</string>
     <string name="project_detail_tasks">משימות</string>
@@ -119,11 +141,7 @@
     <string name="project_detail_active">פעילות</string>
     <string name="project_detail_completed">הושלמו</string>
     <string name="project_detail_critical">קריטיות</string>
-    <!-- Severity -->
-    <string name="severity_critical">קריטי</string>
-    <string name="severity_high">גבוה</string>
-    <string name="severity_medium">בינוני</string>
-    <string name="severity_low">נמוך</string>
+
     <!-- Task Detail Screen -->
     <string name="task_detail_title">פרטי משימה</string>
     <string name="task_detail_edit">ערוך משימה</string>
@@ -140,6 +158,7 @@
     <string name="task_detail_add_subtask">הוסף תת-משימה</string>
     <string name="task_detail_description">תיאור</string>
     <string name="task_detail_no_description">אין תיאור</string>
+
     <!-- Focus Mode -->
     <string name="focus_title">מצב פוקוס</string>
     <string name="focus_pause">השהה</string>
@@ -153,16 +172,46 @@
     <string name="focus_progress">התקדמות</string>
     <string name="focus_dnd_active">מצב לא להפריע פעיל</string>
     <string name="focus_stay_focused">!הישאר ממוקד 🎯</string>
-    <!-- Risk Status -->
-    <string name="risk_at_risk">בסיכון</string>
-    <string name="risk_warning">אזהרה</string>
-    <string name="risk_on_track">על המסלול</string>
-    <!-- Days of week -->
-    <string name="day_sun">א׳</string>
-    <string name="day_mon">ב׳</string>
-    <string name="day_tue">ג׳</string>
-    <string name="day_wed">ד׳</string>
-    <string name="day_thu">ה׳</string>
-    <string name="day_fri">ו׳</string>
-    <string name="day_sat">ש׳</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_profile">פרופיל</string>
+    <string name="settings_name">שם</string>
+    <string name="settings_role">תפקיד</string>
+    <string name="settings_gender">מגדר</string>
+    <string name="settings_language">שפה</string>
+    <string name="settings_work">הגדרות עבודה</string>
+    <string name="settings_work_hours">שעות עבודה</string>
+    <string name="settings_work_days">ימי עבודה</string>
+    <string name="settings_focus">הגדרות פוקוס</string>
+    <string name="settings_focus_duration">משך פוקוס</string>
+    <string name="settings_data">נתונים</string>
+    <string name="settings_clear_data">מחק את כל הנתונים</string>
+    <string name="settings_clear_confirm">פעולה זו תמחק את כל הפרויקטים, המשימות וההגדרות. האם אתה בטוח?</string>
+    <string name="settings_version">גרסה</string>
+    <string name="settings_save">שמור שינויים</string>
+    <string name="settings_saved">ההגדרות נשמרו בהצלחה</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_title">סטטיסטיקות</string>
+    <string name="stats_current_streak">רצף נוכחי</string>
+    <string name="stats_longest_streak">רצף הכי ארוך</string>
+    <string name="stats_days">ימים</string>
+    <string name="stats_today">היום</string>
+    <string name="stats_this_week">השבוע</string>
+    <string name="stats_this_month">החודש</string>
+    <string name="stats_tasks_completed">משימות שהושלמו</string>
+    <string name="stats_time_worked">זמן עבודה</string>
+    <string name="stats_avg_accuracy">דיוק הערכה</string>
+    <string name="stats_total_projects">סה״כ פרויקטים</string>
+    <string name="stats_active_projects">פרויקטים פעילים</string>
+    <string name="stats_completed_projects">פרויקטים שהושלמו</string>
+
+    <!-- Add SubTask Dialog -->
+    <string name="add_subtask_title">הוסף תת-משימה</string>
+    <string name="add_subtask_name">שם תת-משימה</string>
+    <string name="add_subtask_name_hint">הזן שם תת-משימה</string>
+    <string name="add_subtask_estimated_hours">שעות משוערות</string>
+    <string name="add_subtask_create">צור</string>
+    <string name="add_subtask_error_name">נא להזין שם תת-משימה</string>
 </resources>

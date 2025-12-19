@@ -28,6 +28,19 @@
     <string name="language_hebrew">עברית</string>
     <string name="language_russian">Русский</string>
 
+    <!-- Days of week -->
+    <string name="day_sun">Вс</string>
+    <string name="day_mon">Пн</string>
+    <string name="day_tue">Вт</string>
+    <string name="day_wed">Ср</string>
+    <string name="day_thu">Чт</string>
+    <string name="day_fri">Пт</string>
+    <string name="day_sat">Сб</string>
+
+    <!-- Common -->
+    <string name="common_hour_short">ч</string>
+    <string name="common_minute_short">м</string>
+
     <!-- Dashboard -->
     <string name="dashboard_greeting_morning">Доброе утро</string>
     <string name="dashboard_greeting_afternoon">Добрый день</string>
@@ -49,6 +62,7 @@
     <string name="dashboard_create_task">Создайте первую задачу</string>
     <string name="dashboard_after_hours">Вне рабочих часов</string>
     <string name="dashboard_more_events">+%d событий</string>
+
     <!-- Projects Screen -->
     <string name="projects_title">Проекты</string>
     <string name="projects_all">Все</string>
@@ -101,6 +115,18 @@
     <string name="priority_high">Высокий</string>
     <string name="priority_medium">Средний</string>
     <string name="priority_low">Низкий</string>
+
+    <!-- Severity -->
+    <string name="severity_critical">Критическая</string>
+    <string name="severity_high">Высокая</string>
+    <string name="severity_medium">Средняя</string>
+    <string name="severity_low">Низкая</string>
+
+    <!-- Risk Status -->
+    <string name="risk_at_risk">В опасности</string>
+    <string name="risk_warning">Предупреждение</string>
+    <string name="risk_on_track">В плане</string>
+
     <!-- Project Detail Screen -->
     <string name="project_detail_title">Детали проекта</string>
     <string name="project_detail_tasks">Задачи</string>
@@ -114,24 +140,7 @@
     <string name="project_detail_active">Активные</string>
     <string name="project_detail_completed">Завершенные</string>
     <string name="project_detail_critical">Критические</string>
-    <!-- Severity -->
-    <string name="severity_critical">Критическая</string>
-    <string name="severity_high">Высокая</string>
-    <string name="severity_medium">Средняя</string>
-    <string name="severity_low">Низкая</string>
-    <!-- Focus Mode -->
-    <string name="focus_title">Режим фокуса</string>
-    <string name="focus_pause">Пауза</string>
-    <string name="focus_resume">Продолжить</string>
-    <string name="focus_finish">Завершить задачу</string>
-    <string name="focus_cancel">Отменить фокус</string>
-    <string name="focus_confirm_cancel">Вы уверены, что хотите отменить? Прогресс будет сохранен.</string>
-    <string name="focus_confirm_finish">Отметить эту задачу как выполненную?</string>
-    <string name="focus_time_spent">Затраченное время</string>
-    <string name="focus_estimated_time">Оценка времени</string>
-    <string name="focus_progress">Прогресс</string>
-    <string name="focus_dnd_active">Режим "Не беспокоить" активен</string>
-    <string name="focus_stay_focused">Оставайтесь сосредоточенными! 🎯</string>
+
     <!-- Task Detail Screen -->
     <string name="task_detail_title">Детали задачи</string>
     <string name="task_detail_edit">Изменить задачу</string>
@@ -148,19 +157,60 @@
     <string name="task_detail_add_subtask">Добавить подзадачу</string>
     <string name="task_detail_description">Описание</string>
     <string name="task_detail_no_description">Нет описания</string>
-    <!-- Risk Status -->
-    <string name="risk_at_risk">В опасности</string>
-    <string name="risk_warning">Предупреждение</string>
-    <string name="risk_on_track">В плане</string>
-    <!-- Common -->
-    <string name="common_hour_short">ч</string>
-    <string name="common_minute_short">м</string>
-    <!-- Days of week -->
-    <string name="day_sun">Вс</string>
-    <string name="day_mon">Пн</string>
-    <string name="day_tue">Вт</string>
-    <string name="day_wed">Ср</string>
-    <string name="day_thu">Чт</string>
-    <string name="day_fri">Пт</string>
-    <string name="day_sat">Сб</string>
+
+    <!-- Focus Mode -->
+    <string name="focus_title">Режим фокуса</string>
+    <string name="focus_pause">Пауза</string>
+    <string name="focus_resume">Продолжить</string>
+    <string name="focus_finish">Завершить задачу</string>
+    <string name="focus_cancel">Отменить фокус</string>
+    <string name="focus_confirm_cancel">Вы уверены, что хотите отменить? Прогресс будет сохранен.</string>
+    <string name="focus_confirm_finish">Отметить эту задачу как выполненную?</string>
+    <string name="focus_time_spent">Затраченное время</string>
+    <string name="focus_estimated_time">Оценка времени</string>
+    <string name="focus_progress">Прогресс</string>
+    <string name="focus_dnd_active">Режим "Не беспокоить" активен</string>
+    <string name="focus_stay_focused">Оставайтесь сосредоточенными! 🎯</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_profile">Профиль</string>
+    <string name="settings_name">Имя</string>
+    <string name="settings_role">Должность</string>
+    <string name="settings_gender">Пол</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_work">Рабочие настройки</string>
+    <string name="settings_work_hours">Рабочие часы</string>
+    <string name="settings_work_days">Рабочие дни</string>
+    <string name="settings_focus">Настройки фокуса</string>
+    <string name="settings_focus_duration">Длительность фокуса</string>
+    <string name="settings_data">Данные</string>
+    <string name="settings_clear_data">Очистить все данные</string>
+    <string name="settings_clear_confirm">Это удалит все проекты, задачи и настройки. Вы уверены?</string>
+    <string name="settings_version">Версия</string>
+    <string name="settings_save">Сохранить изменения</string>
+    <string name="settings_saved">Настройки успешно сохранены</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_title">Статистика</string>
+    <string name="stats_current_streak">Текущая серия</string>
+    <string name="stats_longest_streak">Рекордная серия</string>
+    <string name="stats_days">дней</string>
+    <string name="stats_today">Сегодня</string>
+    <string name="stats_this_week">Эта неделя</string>
+    <string name="stats_this_month">Этот месяц</string>
+    <string name="stats_tasks_completed">Завершено задач</string>
+    <string name="stats_time_worked">Отработано времени</string>
+    <string name="stats_avg_accuracy">Точность оценки</string>
+    <string name="stats_total_projects">Всего проектов</string>
+    <string name="stats_active_projects">Активные проекты</string>
+    <string name="stats_completed_projects">Завершенные проекты</string>
+
+    <!-- Add SubTask Dialog -->
+    <string name="add_subtask_title">Добавить подзадачу</string>
+    <string name="add_subtask_name">Название подзадачи</string>
+    <string name="add_subtask_name_hint">Введите название</string>
+    <string name="add_subtask_estimated_hours">Оценка часов</string>
+    <string name="add_subtask_create">Создать</string>
+    <string name="add_subtask_error_name">Введите название подзадачи</string>
 </resources>

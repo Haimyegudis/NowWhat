@@ -37,6 +37,10 @@
     <string name="day_fri">Fri</string>
     <string name="day_sat">Sat</string>
 
+    <!-- Common -->
+    <string name="common_hour_short">h</string>
+    <string name="common_minute_short">m</string>
+
     <!-- Dashboard -->
     <string name="dashboard_greeting_morning">Good morning</string>
     <string name="dashboard_greeting_afternoon">Good afternoon</string>
@@ -58,6 +62,7 @@
     <string name="dashboard_create_task">Create your first task</string>
     <string name="dashboard_after_hours">After hours</string>
     <string name="dashboard_more_events">+%d more events</string>
+
     <!-- Projects Screen -->
     <string name="projects_title">Projects</string>
     <string name="projects_all">All</string>
@@ -110,6 +115,18 @@
     <string name="priority_high">High</string>
     <string name="priority_medium">Medium</string>
     <string name="priority_low">Low</string>
+
+    <!-- Severity -->
+    <string name="severity_critical">Critical</string>
+    <string name="severity_high">High</string>
+    <string name="severity_medium">Medium</string>
+    <string name="severity_low">Low</string>
+
+    <!-- Risk Status -->
+    <string name="risk_at_risk">At Risk</string>
+    <string name="risk_warning">Warning</string>
+    <string name="risk_on_track">On Track</string>
+
     <!-- Project Detail Screen -->
     <string name="project_detail_title">Project Details</string>
     <string name="project_detail_tasks">Tasks</string>
@@ -123,11 +140,7 @@
     <string name="project_detail_active">Active</string>
     <string name="project_detail_completed">Completed</string>
     <string name="project_detail_critical">Critical</string>
-    <!-- Severity -->
-    <string name="severity_critical">Critical</string>
-    <string name="severity_high">High</string>
-    <string name="severity_medium">Medium</string>
-    <string name="severity_low">Low</string>
+
     <!-- Task Detail Screen -->
     <string name="task_detail_title">Task Details</string>
     <string name="task_detail_edit">Edit Task</string>
@@ -144,7 +157,7 @@
     <string name="task_detail_add_subtask">Add Sub-task</string>
     <string name="task_detail_description">Description</string>
     <string name="task_detail_no_description">No description</string>
-    <!-- Risk Status -->
+
     <!-- Focus Mode -->
     <string name="focus_title">Focus Mode</string>
     <string name="focus_pause">Pause</string>
@@ -158,10 +171,46 @@
     <string name="focus_progress">Progress</string>
     <string name="focus_dnd_active">Do Not Disturb is active</string>
     <string name="focus_stay_focused">Stay focused! 🎯</string>
-    <string name="risk_at_risk">At Risk</string>
-    <string name="risk_warning">Warning</string>
-    <string name="risk_on_track">On Track</string>
-    <!-- Common -->
-    <string name="common_hour_short">h</string>
-    <string name="common_minute_short">m</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_name">Name</string>
+    <string name="settings_role">Role</string>
+    <string name="settings_gender">Gender</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_work">Work Settings</string>
+    <string name="settings_work_hours">Work Hours</string>
+    <string name="settings_work_days">Work Days</string>
+    <string name="settings_focus">Focus Settings</string>
+    <string name="settings_focus_duration">Focus Duration</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_clear_data">Clear All Data</string>
+    <string name="settings_clear_confirm">This will delete all projects, tasks, and settings. Are you sure?</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_save">Save Changes</string>
+    <string name="settings_saved">Settings saved successfully</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_current_streak">Current Streak</string>
+    <string name="stats_longest_streak">Longest Streak</string>
+    <string name="stats_days">days</string>
+    <string name="stats_today">Today</string>
+    <string name="stats_this_week">This Week</string>
+    <string name="stats_this_month">This Month</string>
+    <string name="stats_tasks_completed">Tasks Completed</string>
+    <string name="stats_time_worked">Time Worked</string>
+    <string name="stats_avg_accuracy">Estimation Accuracy</string>
+    <string name="stats_total_projects">Total Projects</string>
+    <string name="stats_active_projects">Active Projects</string>
+    <string name="stats_completed_projects">Completed Projects</string>
+
+    <!-- Add SubTask Dialog -->
+    <string name="add_subtask_title">Add Sub-task</string>
+    <string name="add_subtask_name">Sub-task Name</string>
+    <string name="add_subtask_name_hint">Enter sub-task name</string>
+    <string name="add_subtask_estimated_hours">Estimated Hours</string>
+    <string name="add_subtask_create">Create</string>
+    <string name="add_subtask_error_name">Please enter sub-task name</string>
 </resources>

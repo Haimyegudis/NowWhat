@@ -1,10 +1,14 @@
 package com.nowwhat.app
 
+import com.nowwhat.app.screens.AddSubTaskDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,13 +16,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.nowwhat.app.data.AppDatabase
 import com.nowwhat.app.screens.CreateProjectDialog
 import com.nowwhat.app.screens.CreateTaskDialog
 import com.nowwhat.app.screens.DashboardScreen
+import com.nowwhat.app.screens.FocusModeScreen
 import com.nowwhat.app.screens.ProjectDetailScreen
 import com.nowwhat.app.screens.ProjectsScreen
+import com.nowwhat.app.screens.SettingsScreen
+import com.nowwhat.app.screens.StatsScreen
 import com.nowwhat.app.screens.TaskDetailScreen
 import com.nowwhat.app.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
 
 // Navigation routes
 object Routes {
@@ -74,14 +83,23 @@ fun AppNavigation(
             TaskDetailScreenWrapper(viewModel, navController, taskId)
         }
 
-        // Settings (TODO: נוסיף בהמשך)
+        // Settings
         composable(Routes.Settings) {
-            // SettingsScreen(viewModel, navController)
+            SettingsScreenWrapper(viewModel, navController)
         }
 
-        // Stats (TODO: נוסיף בהמשך)
+        // Stats
         composable(Routes.Stats) {
-            // StatsScreen(viewModel, navController)
+            StatsScreenWrapper(viewModel, navController)
+        }
+
+        // Focus Mode
+        composable(
+            route = Routes.FocusMode,
+            arguments = listOf(navArgument("taskId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getLong("taskId")?.toInt() ?: 0
+            FocusModeScreenWrapper(viewModel, navController, taskId)
         }
     }
 }
@@ -247,10 +265,22 @@ fun TaskDetailScreenWrapper(
     val projects by viewModel.projects.collectAsState(initial = emptyList())
     val tasks by viewModel.tasks.collectAsState(initial = emptyList())
     val subTasks by viewModel.subTasks.collectAsState(initial = emptyList())
+    var showAddSubTaskDialog by remember { mutableStateOf(false) }
 
     val task = tasks.find { it.id == taskId }
     val project = task?.let { t -> projects.find { it.id == t.projectId } }
     val taskSubTasks = subTasks.filter { it.taskId == taskId }
+
+    if (showAddSubTaskDialog && task != null) {
+        AddSubTaskDialog(
+            taskId = task.id,
+            onDismiss = { showAddSubTaskDialog = false },
+            onCreateSubTask = { subTask ->
+                viewModel.createSubTask(subTask)
+                showAddSubTaskDialog = false
+            }
+        )
+    }
 
     if (task != null && project != null) {
         TaskDetailScreen(
@@ -272,10 +302,114 @@ fun TaskDetailScreenWrapper(
                 navController.navigate(Routes.focusMode(task.id.toLong()))
             },
             onAddSubTask = {
-                // TODO: Add subtask dialog
+                showAddSubTaskDialog = true
             },
             onToggleSubTaskDone = { subTask ->
                 viewModel.toggleSubTaskDone(subTask)
+            }
+        )
+    }
+}
+@Composable
+fun SettingsScreenWrapper(
+    viewModel: MainViewModel,
+    navController: NavHostController
+) {
+    val user by viewModel.user.collectAsState(initial = null)
+    val scope = rememberCoroutineScope()
+
+    if (user != null) {
+        SettingsScreen(
+            user = user!!,
+            onBackClick = { navController.popBackStack() },
+            onSaveSettings = { updatedUser ->
+                scope.launch {
+                    viewModel.userPreferences.saveUserProfile(updatedUser)
+                    viewModel.refreshCalendarEvents()
+                }
+            },
+            onClearData = {
+                scope.launch {
+                    val context = navController.context
+                    AppDatabase.clearDatabase(context)
+                    viewModel.userPreferences.clearAll()
+                    // Restart app
+                    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                    intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    context.startActivity(intent)
+                    (context as? android.app.Activity)?.finish()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun StatsScreenWrapper(
+    viewModel: MainViewModel,
+    navController: NavHostController
+) {
+    val user by viewModel.user.collectAsState(initial = null)
+    val projects by viewModel.projects.collectAsState(initial = emptyList())
+    val tasks by viewModel.tasks.collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+
+    var tasksCompletedToday by remember { mutableIntStateOf(0) }
+    var tasksCompletedThisWeek by remember { mutableIntStateOf(0) }
+    var tasksCompletedThisMonth by remember { mutableIntStateOf(0) }
+    var timeWorkedToday by remember { mutableIntStateOf(0) }
+    var timeWorkedThisWeek by remember { mutableIntStateOf(0) }
+    var timeWorkedThisMonth by remember { mutableIntStateOf(0) }
+    var avgAccuracy by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            tasksCompletedToday = viewModel.getTasksCompletedToday()
+            tasksCompletedThisWeek = viewModel.getTasksCompletedThisWeek()
+            tasksCompletedThisMonth = viewModel.getTasksCompletedThisMonth()
+            timeWorkedToday = viewModel.getTimeWorkedToday()
+            timeWorkedThisWeek = viewModel.getTimeWorkedThisWeek()
+            timeWorkedThisMonth = viewModel.getTimeWorkedThisMonth()
+            avgAccuracy = viewModel.getAvgEstimationAccuracy()
+        }
+    }
+
+    if (user != null) {
+        StatsScreen(
+            user = user!!,
+            projects = projects,
+            tasks = tasks,
+            tasksCompletedToday = tasksCompletedToday,
+            tasksCompletedThisWeek = tasksCompletedThisWeek,
+            tasksCompletedThisMonth = tasksCompletedThisMonth,
+            timeWorkedToday = timeWorkedToday,
+            timeWorkedThisWeek = timeWorkedThisWeek,
+            timeWorkedThisMonth = timeWorkedThisMonth,
+            avgAccuracy = avgAccuracy,
+            onBackClick = { navController.popBackStack() }
+        )
+    }
+}
+
+@Composable
+fun FocusModeScreenWrapper(
+    viewModel: MainViewModel,
+    navController: NavHostController,
+    taskId: Int
+) {
+    val tasks by viewModel.tasks.collectAsState(initial = emptyList())
+    val user by viewModel.user.collectAsState(initial = null)
+
+    val task = tasks.find { it.id == taskId }
+
+    if (task != null && user != null) {
+        FocusModeScreen(
+            task = task,
+            focusDuration = user!!.focusDndMinutes,
+            onBackClick = { navController.popBackStack() },
+            onFinishTask = { actualMinutes ->
+                viewModel.finishTask(task, actualMinutes)
+                navController.popBackStack()
             }
         )
     }
