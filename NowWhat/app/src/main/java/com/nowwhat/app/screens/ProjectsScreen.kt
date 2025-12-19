@@ -50,7 +50,6 @@ fun ProjectsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var expandedProjectIds by remember { mutableStateOf(setOf<Int>()) }
 
-    // Filter projects - only show non-completed by default
     val filteredProjects = projects.filter { project ->
         val matchesSearch = searchQuery.isEmpty() ||
                 project.name.contains(searchQuery, ignoreCase = true)
@@ -59,7 +58,7 @@ fun ProjectsScreen(
             "active" -> !project.isCompleted
             "completed" -> project.isCompleted
             "at_risk" -> project.risk == RiskStatus.AtRisk && !project.isCompleted
-            else -> true // "all"
+            else -> true
         }
 
         matchesSearch && matchesFilter
@@ -85,7 +84,6 @@ fun ProjectsScreen(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Create Task FAB
                 if (projects.isNotEmpty()) {
                     SmallFloatingActionButton(
                         onClick = onCreateTask,
@@ -94,7 +92,6 @@ fun ProjectsScreen(
                         Icon(Icons.Default.Add, contentDescription = "Create Task", tint = Color.White)
                     }
                 }
-                // Create Project FAB
                 FloatingActionButton(
                     onClick = onCreateProject,
                     containerColor = Color(0xFF6200EE)
@@ -109,7 +106,6 @@ fun ProjectsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -133,7 +129,6 @@ fun ProjectsScreen(
                 )
             )
 
-            // Filter Chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,7 +159,6 @@ fun ProjectsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Projects List
             if (filteredProjects.isEmpty()) {
                 EmptyProjectsState(onCreateProject, isDarkMode, textColor)
             } else {
@@ -258,7 +252,6 @@ fun ExpandableProjectCard(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Project Header (Clickable for expand/collapse)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -301,7 +294,6 @@ fun ExpandableProjectCard(
                     }
                 }
 
-                // Risk Badge or Completed Icon
                 if (project.isCompleted) {
                     Icon(
                         Icons.Default.CheckCircle,
@@ -310,11 +302,10 @@ fun ExpandableProjectCard(
                         modifier = Modifier.size(24.dp)
                     )
                 } else {
-                    RiskBadge(project.risk)
+                    RiskBadgeProjects(project.risk)
                 }
             }
 
-            // Progress Bar
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 LinearProgressIndicator(
                     progress = { project.progress / 100f },
@@ -364,7 +355,6 @@ fun ExpandableProjectCard(
                 }
             }
 
-            // Expandable Tasks List
             AnimatedVisibility(
                 visible = isExpanded && tasks.isNotEmpty(),
                 enter = expandVertically(),
@@ -390,7 +380,6 @@ fun ExpandableProjectCard(
                 }
             }
 
-            // View Details Button (always visible)
             TextButton(
                 onClick = onProjectClick,
                 modifier = Modifier
@@ -449,7 +438,6 @@ fun TaskItemInProject(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Urgency indicator
                 val urgencyEmoji = when (task.urgency) {
                     Urgency.Critical -> "🔴"
                     Urgency.VeryHigh -> "🟠"
@@ -459,14 +447,12 @@ fun TaskItemInProject(
                 }
                 Text(urgencyEmoji, fontSize = 12.sp)
 
-                // Time estimate
                 Text(
                     "${task.estimatedMinutes / 60}h ${task.estimatedMinutes % 60}m",
                     fontSize = 12.sp,
                     color = if (isDarkMode) Color.LightGray else Color.Gray
                 )
 
-                // Status
                 if (task.isOverdue && !task.isDone) {
                     Text(
                         "⚠️ Overdue",
@@ -488,10 +474,10 @@ fun TaskItemInProject(
 }
 
 @Composable
-fun RiskBadge(risk: RiskStatus) {
+fun RiskBadgeProjects(risk: RiskStatus) {
     val (text, color) = when (risk) {
-        RiskStatus.AtRisk -> stringResource(R.string.risk_at_risk) to Color(0xFFD32F2F)
-        RiskStatus.Warning -> stringResource(R.string.risk_warning) to Color(0xFFFF9800)
+        RiskStatus.Critical -> stringResource(R.string.risk_at_risk) to Color(0xFFD32F2F)
+        RiskStatus.AtRisk -> stringResource(R.string.risk_warning) to Color(0xFFFF9800)
         RiskStatus.OnTrack -> stringResource(R.string.risk_on_track) to Color(0xFF4CAF50)
     }
 

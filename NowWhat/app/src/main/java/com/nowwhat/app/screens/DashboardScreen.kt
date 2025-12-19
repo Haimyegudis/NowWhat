@@ -45,39 +45,32 @@ fun DashboardScreen(
     onFilterClick: (String) -> Unit,
     onCreateTask: () -> Unit = {}
 ) {
-    // Calculate time of day for greeting
     val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val isDayTime = currentHour in 6..18
 
-    // Get greeting based on time
     val greeting = when (currentHour) {
         in 5..11 -> stringResource(R.string.dashboard_greeting_morning)
         in 12..17 -> stringResource(R.string.dashboard_greeting_afternoon)
         else -> stringResource(R.string.dashboard_greeting_evening)
     }
 
-    // Calculate recommended task
-    val topTask = PriorityAlgorithm.getTopPriorityTask(tasks, availableMinutes)
+    val topTask = PriorityAlgorithm.recommendFocusTask(tasks, availableMinutes)
 
-    // Calculate planned tasks
-    val plannedTasks = PriorityAlgorithm.getTasksThatFitToday(tasks, availableMinutes)
+    val plannedTasks = PriorityAlgorithm.getTasksForToday(tasks, availableMinutes, user)
     val plannedMinutes = plannedTasks.sumOf { it.estimatedMinutes }
     val freeMinutes = availableMinutes - plannedMinutes
 
-    // Filter critical tasks and at-risk projects
     val criticalTasks = tasks.filter {
-        PriorityAlgorithm.isTaskCritical(it, availableMinutes) && !it.isDone
+        (it.urgency == Urgency.Critical || it.urgency == Urgency.VeryHigh) && !it.isDone
     }
     val atRiskProjects = projects.filter { it.risk == RiskStatus.AtRisk && !it.isCompleted }
 
-    // Overall progress
     val totalTasks = tasks.count()
     val completedTasks = tasks.count { it.isDone }
     val overallProgress = if (totalTasks > 0) {
         (completedTasks * 100f / totalTasks).toInt()
     } else 0
 
-    // Capacity period selector
     var selectedPeriod by remember { mutableStateOf("Daily") }
 
     Scaffold(
@@ -152,7 +145,6 @@ fun DashboardScreen(
         ) {
             item { Spacer(Modifier.height(8.dp)) }
 
-            // ========== 1. Recommended Focus ==========
             if (topTask != null) {
                 item {
                     RecommendedFocusCard(
@@ -166,7 +158,6 @@ fun DashboardScreen(
                 }
             }
 
-            // ========== 2. Capacity Card with Period Selector ==========
             item {
                 CapacityCard(
                     selectedPeriod = selectedPeriod,
@@ -178,7 +169,6 @@ fun DashboardScreen(
                 )
             }
 
-            // ========== 3. Today's Schedule ==========
             if (calendarEvents.isNotEmpty()) {
                 item {
                     TodaysScheduleCard(
@@ -189,7 +179,6 @@ fun DashboardScreen(
                 }
             }
 
-            // ========== 4. Overview (Critical & At Risk) ==========
             item {
                 OverviewSection(
                     criticalCount = criticalTasks.size,
@@ -199,18 +188,16 @@ fun DashboardScreen(
                 )
             }
 
-            // ========== 5. Total Progress (Clickable) ==========
             item {
                 TotalProgressCard(
                     overallProgress = overallProgress,
                     completedTasks = completedTasks,
                     totalTasks = totalTasks,
                     tasks = tasks,
-                    onProgressClick = { /* Show incomplete tasks dialog */ }
+                    onProgressClick = { }
                 )
             }
 
-            // ========== 6. View All Projects Button ==========
             item {
                 Button(
                     onClick = onNavigateToProjects,
@@ -239,7 +226,6 @@ fun CapacityCard(
 ) {
     val periods = listOf("Daily", "Weekly", "Sprint", "Monthly")
 
-    // Calculate capacity based on period
     val (totalCapacity, usedCapacity) = when (selectedPeriod) {
         "Daily" -> availableMinutes to plannedMinutes
         "Weekly" -> {
@@ -280,7 +266,6 @@ fun CapacityCard(
 
             Spacer(Modifier.height(12.dp))
 
-            // Period Selector
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -297,7 +282,6 @@ fun CapacityCard(
 
             Spacer(Modifier.height(16.dp))
 
-            // Progress Bar
             val progressPercent = if (totalCapacity > 0) {
                 (usedCapacity.toFloat() / totalCapacity).coerceIn(0f, 1f)
             } else 0f
@@ -683,7 +667,6 @@ fun RecommendedFocusCard(
                     UrgencyBadge(task.urgency, task.urgencyScore)
                 }
 
-                // Play Button
                 IconButton(
                     onClick = onStartFocus,
                     modifier = Modifier

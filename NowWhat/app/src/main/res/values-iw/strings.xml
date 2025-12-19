@@ -206,7 +206,7 @@
     <string name="stats_total_projects">סה״כ פרויקטים</string>
     <string name="stats_active_projects">פרויקטים פעילים</string>
     <string name="stats_completed_projects">פרויקטים שהושלמו</string>
-
+    <string name="priority_critical">קריטי</string>
     <!-- Add SubTask Dialog -->
     <string name="add_subtask_title">הוסף תת-משימה</string>
     <string name="add_subtask_name">שם תת-משימה</string>

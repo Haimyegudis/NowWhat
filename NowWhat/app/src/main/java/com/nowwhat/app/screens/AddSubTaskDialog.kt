@@ -35,7 +35,6 @@ fun AddSubTaskDialog(
                     .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // SubTask Name
                 OutlinedTextField(
                     value = subTaskName,
                     onValueChange = {
@@ -57,7 +56,6 @@ fun AddSubTaskDialog(
                     )
                 }
 
-                // Priority
                 Text(
                     stringResource(R.string.create_task_priority),
                     style = MaterialTheme.typography.labelMedium
@@ -81,7 +79,6 @@ fun AddSubTaskDialog(
                     }
                 }
 
-                // Severity
                 Text(
                     stringResource(R.string.create_task_severity),
                     style = MaterialTheme.typography.labelMedium
@@ -105,7 +102,6 @@ fun AddSubTaskDialog(
                     }
                 }
 
-                // Estimated Hours
                 OutlinedTextField(
                     value = estimatedHours,
                     onValueChange = { estimatedHours = it },
@@ -150,6 +146,7 @@ fun AddSubTaskDialog(
 @Composable
 private fun getPriorityString(priority: Priority): String {
     return when (priority) {
+        Priority.Critical -> stringResource(R.string.priority_critical)
         Priority.Immediate -> stringResource(R.string.priority_immediate)
         Priority.High -> stringResource(R.string.priority_high)
         Priority.Medium -> stringResource(R.string.priority_medium)

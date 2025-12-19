@@ -50,6 +50,12 @@ data class Task(
     var urgency: Urgency = Urgency.Low
 
     /**
+     * Alias for hasBlocker
+     */
+    val isBlocked: Boolean
+        get() = hasBlocker
+
+    /**
      * Calculate progress percentage
      */
     val progress: Int

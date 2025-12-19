@@ -16,7 +16,8 @@ object PriorityAlgorithm {
 
         // Base scores from priority and severity
         val priorityScore = when (task.priority) {
-            Priority.Critical -> 200
+            Priority.Critical -> 250
+            Priority.Immediate -> 200
             Priority.High -> 150
             Priority.Medium -> 100
             Priority.Low -> 50

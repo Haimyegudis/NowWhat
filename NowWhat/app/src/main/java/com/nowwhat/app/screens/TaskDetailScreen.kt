@@ -262,9 +262,11 @@ fun TaskDetailsCard(task: Task) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Priority
+            // Priority
             DetailRow(
                 label = stringResource(R.string.create_task_priority),
                 value = when (task.priority) {
+                    Priority.Critical -> "💀 ${stringResource(R.string.priority_critical)}"
                     Priority.Immediate -> "⚡ ${stringResource(R.string.priority_immediate)}"
                     Priority.High -> "🔴 ${stringResource(R.string.priority_high)}"
                     Priority.Medium -> "🟡 ${stringResource(R.string.priority_medium)}"

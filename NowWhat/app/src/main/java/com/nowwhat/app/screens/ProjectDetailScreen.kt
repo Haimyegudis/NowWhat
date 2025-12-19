@@ -50,17 +50,15 @@ fun ProjectDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showCompleteDialog by remember { mutableStateOf(false) }
 
-    // Filter tasks
     val filteredTasks = tasks.filter { task ->
         when (selectedFilter) {
             "active" -> !task.isDone
             "completed" -> task.isDone
-            "critical" -> PriorityAlgorithm.isTaskCritical(task, availableMinutes) && !task.isDone
-            else -> true // "all"
+            "critical" -> (task.urgency == Urgency.Critical || task.urgency == Urgency.VeryHigh) && !task.isDone
+            else -> true
         }
     }
 
-    // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -87,7 +85,6 @@ fun ProjectDetailScreen(
         )
     }
 
-    // Complete confirmation dialog
     if (showCompleteDialog) {
         AlertDialog(
             onDismissRequest = { showCompleteDialog = false },
@@ -131,7 +128,6 @@ fun ProjectDetailScreen(
                     }
                 },
                 actions = {
-                    // Complete/Incomplete toggle
                     IconButton(onClick = { showCompleteDialog = true }) {
                         Icon(
                             if (project.isCompleted) Icons.Default.Undo else Icons.Default.CheckCircle,
@@ -139,11 +135,9 @@ fun ProjectDetailScreen(
                             tint = Color.White
                         )
                     }
-                    // Edit
                     IconButton(onClick = onEditProject) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White)
                     }
-                    // Delete
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
                     }
@@ -169,12 +163,10 @@ fun ProjectDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Project Info Card
             ProjectInfoCard(project, isDarkMode, textColor, cardColor)
 
             Spacer(Modifier.height(16.dp))
 
-            // Filter Chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -205,7 +197,6 @@ fun ProjectDetailScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Tasks List
             if (filteredTasks.isEmpty()) {
                 EmptyTasksState(onCreateTask, project.isCompleted, isDarkMode, textColor)
             } else {
@@ -251,7 +242,6 @@ fun ProjectInfoCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Completed Badge
             if (project.isCompleted) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -279,7 +269,6 @@ fun ProjectInfoCard(
                 Spacer(Modifier.height(12.dp))
             }
 
-            // Description
             if (project.description.isNotEmpty()) {
                 Text(
                     project.description,
@@ -289,7 +278,6 @@ fun ProjectInfoCard(
                 Spacer(Modifier.height(16.dp))
             }
 
-            // Progress
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -320,7 +308,6 @@ fun ProjectInfoCard(
                 trackColor = if (isDarkMode) Color(0xFF424242) else Color(0xFFE0E0E0)
             )
 
-            // Deadline
             project.deadline?.let { deadline ->
                 Spacer(Modifier.height(16.dp))
                 val today = System.currentTimeMillis()
@@ -349,7 +336,6 @@ fun ProjectInfoCard(
                 }
             }
 
-            // Risk Status
             if (!project.isCompleted) {
                 Spacer(Modifier.height(12.dp))
                 Row(
@@ -400,7 +386,6 @@ fun TaskCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Checkbox
             Checkbox(
                 checked = task.isDone,
                 onCheckedChange = { onToggleDone() },
@@ -411,7 +396,6 @@ fun TaskCard(
 
             Spacer(Modifier.width(12.dp))
 
-            // Task Content
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     task.title,
@@ -429,17 +413,14 @@ fun TaskCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Urgency indicator
                     UrgencyChip(task.urgency)
 
-                    // Estimated time
                     Text(
                         "${task.estimatedMinutes / 60}h ${task.estimatedMinutes % 60}m",
                         fontSize = 12.sp,
                         color = if (isDarkMode) Color.LightGray else Color.Gray
                     )
 
-                    // Deadline
                     task.deadline?.let { deadline ->
                         val daysLeft = TimeUnit.MILLISECONDS.toDays(deadline - System.currentTimeMillis()).toInt()
                         Text(
@@ -531,5 +512,27 @@ fun EmptyTasksState(
                 Text("Add Task", color = Color.White)
             }
         }
+    }
+}
+
+@Composable
+fun RiskBadge(risk: RiskStatus) {
+    val (text, color) = when (risk) {
+        RiskStatus.Critical -> stringResource(R.string.risk_at_risk) to Color(0xFFD32F2F)
+        RiskStatus.AtRisk -> stringResource(R.string.risk_warning) to Color(0xFFFF9800)
+        RiskStatus.OnTrack -> stringResource(R.string.risk_on_track) to Color(0xFF4CAF50)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.15f)
+    ) {
+        Text(
+            text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }

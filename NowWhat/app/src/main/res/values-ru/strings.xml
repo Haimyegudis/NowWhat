@@ -205,7 +205,7 @@
     <string name="stats_total_projects">Всего проектов</string>
     <string name="stats_active_projects">Активные проекты</string>
     <string name="stats_completed_projects">Завершенные проекты</string>
-
+    <string name="priority_critical">Критический</string>
     <!-- Add SubTask Dialog -->
     <string name="add_subtask_title">Добавить подзадачу</string>
     <string name="add_subtask_name">Название подзадачи</string>

@@ -205,7 +205,7 @@
     <string name="stats_total_projects">Total Projects</string>
     <string name="stats_active_projects">Active Projects</string>
     <string name="stats_completed_projects">Completed Projects</string>
-
+    <string name="priority_critical">Critical</string>
     <!-- Add SubTask Dialog -->
     <string name="add_subtask_title">Add Sub-task</string>
     <string name="add_subtask_name">Sub-task Name</string>

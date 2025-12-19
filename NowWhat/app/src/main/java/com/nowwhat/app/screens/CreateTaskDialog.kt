@@ -66,7 +66,6 @@ fun CreateTaskDialog(
                     .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Task Name
                 OutlinedTextField(
                     value = taskName,
                     onValueChange = {
@@ -80,7 +79,6 @@ fun CreateTaskDialog(
                     isError = showError && taskName.isBlank()
                 )
 
-                // Project Selection
                 ExposedDropdownMenuBox(
                     expanded = showProjectDropdown,
                     onExpandedChange = { showProjectDropdown = !showProjectDropdown }
@@ -114,7 +112,6 @@ fun CreateTaskDialog(
                     }
                 }
 
-                // Priority
                 Text(
                     stringResource(R.string.create_task_priority),
                     style = MaterialTheme.typography.labelMedium
@@ -138,7 +135,6 @@ fun CreateTaskDialog(
                     }
                 }
 
-                // Severity
                 Text(
                     stringResource(R.string.create_task_severity),
                     style = MaterialTheme.typography.labelMedium
@@ -162,7 +158,6 @@ fun CreateTaskDialog(
                     }
                 }
 
-                // Estimated Hours
                 OutlinedTextField(
                     value = estimatedHours,
                     onValueChange = { estimatedHours = it },
@@ -172,7 +167,6 @@ fun CreateTaskDialog(
                     singleLine = true
                 )
 
-                // Deadline
                 OutlinedButton(
                     onClick = { datePickerDialog.show() },
                     modifier = Modifier.fillMaxWidth()
@@ -187,7 +181,6 @@ fun CreateTaskDialog(
                     )
                 }
 
-                // Task Description
                 OutlinedTextField(
                     value = taskDescription,
                     onValueChange = { taskDescription = it },
@@ -198,7 +191,6 @@ fun CreateTaskDialog(
                     maxLines = 5
                 )
 
-                // Error Message
                 if (showError && errorMessage.isNotEmpty()) {
                     Text(
                         errorMessage,
@@ -252,6 +244,7 @@ fun CreateTaskDialog(
 @Composable
 private fun getPriorityString(priority: Priority): String {
     return when (priority) {
+        Priority.Critical -> stringResource(R.string.priority_critical)
         Priority.Immediate -> stringResource(R.string.priority_immediate)
         Priority.High -> stringResource(R.string.priority_high)
         Priority.Medium -> stringResource(R.string.priority_medium)
