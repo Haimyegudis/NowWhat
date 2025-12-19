@@ -14,7 +14,7 @@ import com.nowwhat.app.model.SubTask
         Task::class,
         SubTask::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

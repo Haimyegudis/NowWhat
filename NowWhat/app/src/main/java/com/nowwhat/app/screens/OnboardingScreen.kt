@@ -34,7 +34,8 @@ fun OnboardingScreen(
     val scope = rememberCoroutineScope()
 
     // Get initial language from preferences
-    val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    // Get initial language from preferences
+    val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
     val initialLanguageCode = sharedPrefs.getString("language", "English") ?: "English"
     val initialLanguage = try {
         AppLanguage.valueOf(initialLanguageCode)

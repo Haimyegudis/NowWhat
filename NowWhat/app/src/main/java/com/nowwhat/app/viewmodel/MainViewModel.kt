@@ -23,34 +23,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val user: StateFlow<UserProfile?> = userPreferences.userProfileFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    // Projects with calculated stats
-    val projects: StateFlow<List<Project>> = combine(
-        dao.getAllProjects(),
-        dao.getAllTasks()
-    ) { projects, tasks ->
-        projects.map { project ->
-            val projectTasks = tasks.filter { it.projectId == project.id }
-            project.apply {
-                totalTasks = projectTasks.size
-                completedTasks = projectTasks.count { it.isDone }
-                risk = PriorityAlgorithm.calculateProjectRisk(
-                    project = this,
-                    tasks = projectTasks,
-                    availableMinutes = _availableMinutes.value
-                )
-                timeNeededMinutes = projectTasks
-                    .filter { !it.isDone }
-                    .sumOf { it.estimatedMinutes }
-            }
-        }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
     // Tasks
     val tasks: StateFlow<List<Task>> = dao.getAllTasks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    // SubTasks
-    val subTasks: StateFlow<List<SubTask>> = dao.getAllSubTasks()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // Calendar events
@@ -60,6 +34,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Available minutes today
     private val _availableMinutes = MutableStateFlow(0)
     val availableMinutes: StateFlow<Int> = _availableMinutes.asStateFlow()
+
+    // Projects with calculated stats
+    val projects: StateFlow<List<Project>> = combine(
+        dao.getAllProjects(),
+        tasks,
+        user
+    ) { projects, tasks, user ->
+        if (user == null) {
+            projects
+        } else {
+            projects.map { project ->
+                val projectTasks = tasks.filter { it.projectId == project.id }
+                project.apply {
+                    totalTasks = projectTasks.size
+                    completedTasks = projectTasks.count { it.isDone }
+                    risk = PriorityAlgorithm.calculateProjectRisk(
+                        project = this,
+                        tasks = projectTasks,
+                        user = user
+                    )
+                    timeNeededMinutes = projectTasks
+                        .filter { !it.isDone }
+                        .sumOf { it.estimatedMinutes }
+                }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // SubTasks
+    val subTasks: StateFlow<List<SubTask>> = dao.getAllSubTasks()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
         refreshCalendarEvents()
@@ -72,15 +77,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val today = Calendar.getInstance()
                 val events = calendarRepository.getEventsForDate(
                     date = today,
-                    workStartHour = userProfile.startWorkHour,
-                    workEndHour = userProfile.endWorkHour
+                    user = userProfile
                 )
                 _calendarEvents.value = events
 
                 val availableMins = calendarRepository.calculateAvailableMinutesToday(
-                    workStartHour = userProfile.startWorkHour,
-                    workEndHour = userProfile.endWorkHour,
-                    workDays = userProfile.workDays
+                    user = userProfile
                 )
                 _availableMinutes.value = availableMins
             }
@@ -110,21 +112,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun createTask(task: Task) {
         viewModelScope.launch {
             dao.insertTask(task)
-            updateProjectRisk(task.projectId)
         }
     }
 
     fun updateTask(task: Task) {
         viewModelScope.launch {
             dao.updateTask(task)
-            updateProjectRisk(task.projectId)
         }
     }
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             dao.deleteTask(task)
-            updateProjectRisk(task.projectId)
         }
     }
 
@@ -135,7 +134,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 completedAt = if (!task.isDone) System.currentTimeMillis() else null
             )
             dao.updateTask(updated)
-            updateProjectRisk(task.projectId)
 
             if (updated.isDone) {
                 updateStreak()
@@ -151,7 +149,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 completedAt = System.currentTimeMillis()
             )
             dao.updateTask(updated)
-            updateProjectRisk(task.projectId)
             updateStreak()
         }
     }
@@ -166,7 +163,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }.timeInMillis
 
             tasks.value
-                .filter { !it.isDone && it.deadline != null && it.deadline < today }
+                .filter { !it.isDone && it.deadline != null && it.deadline!! < today }
                 .forEach { task ->
                     val updated = task.copy(movedToNextDay = task.movedToNextDay + 1)
                     dao.updateTask(updated)
@@ -203,23 +200,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ========== Project Risk ==========
-    private fun updateProjectRisk(projectId: Int) {
-        viewModelScope.launch {
-            val project = dao.getProjectById(projectId)
-            val projectTasks = tasks.value.filter { it.projectId == projectId }
-
-            if (project != null) {
-                val risk = PriorityAlgorithm.calculateProjectRisk(
-                    project = project,
-                    tasks = projectTasks,
-                    availableMinutes = _availableMinutes.value
-                )
-                // Risk is calculated in the flow, no need to update separately
-            }
-        }
-    }
-
     // ========== Streak ==========
     private fun updateStreak() {
         viewModelScope.launch {
@@ -232,7 +212,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }.timeInMillis
 
                 val todayTasks = tasks.value.filter {
-                    it.completedAt != null && it.completedAt >= today
+                    it.completedAt != null && it.completedAt!! >= today
                 }
 
                 if (todayTasks.isNotEmpty()) {

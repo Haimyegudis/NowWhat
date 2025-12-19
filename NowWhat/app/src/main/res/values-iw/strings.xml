@@ -106,13 +106,53 @@
     <string name="priority_high">גבוה</string>
     <string name="priority_medium">בינוני</string>
     <string name="priority_low">נמוך</string>
-
+    <!-- Project Detail Screen -->
+    <string name="project_detail_title">פרטי פרויקט</string>
+    <string name="project_detail_tasks">משימות</string>
+    <string name="project_detail_no_tasks">אין משימות בפרויקט זה</string>
+    <string name="project_detail_add_first_task">הוסף את המשימה הראשונה</string>
+    <string name="project_detail_edit">ערוך פרויקט</string>
+    <string name="project_detail_delete">מחק פרויקט</string>
+    <string name="project_detail_delete_confirm">האם אתה בטוח שברצונך למחוק פרויקט זה? כל המשימות יימחקו גם כן.</string>
+    <string name="project_detail_confirm">אישור</string>
+    <string name="project_detail_all_tasks">כל המשימות</string>
+    <string name="project_detail_active">פעילות</string>
+    <string name="project_detail_completed">הושלמו</string>
+    <string name="project_detail_critical">קריטיות</string>
     <!-- Severity -->
     <string name="severity_critical">קריטי</string>
     <string name="severity_high">גבוה</string>
     <string name="severity_medium">בינוני</string>
     <string name="severity_low">נמוך</string>
-
+    <!-- Task Detail Screen -->
+    <string name="task_detail_title">פרטי משימה</string>
+    <string name="task_detail_edit">ערוך משימה</string>
+    <string name="task_detail_delete">מחק משימה</string>
+    <string name="task_detail_delete_confirm">האם אתה בטוח שברצונך למחוק משימה זו?</string>
+    <string name="task_detail_mark_done">סמן כהושלם</string>
+    <string name="task_detail_mark_undone">בטל סימון</string>
+    <string name="task_detail_start_focus">התחל פוקוס</string>
+    <string name="task_detail_estimated">משוער</string>
+    <string name="task_detail_actual">בפועל</string>
+    <string name="task_detail_remaining">נותר</string>
+    <string name="task_detail_subtasks">תת-משימות</string>
+    <string name="task_detail_no_subtasks">אין תת-משימות עדיין</string>
+    <string name="task_detail_add_subtask">הוסף תת-משימה</string>
+    <string name="task_detail_description">תיאור</string>
+    <string name="task_detail_no_description">אין תיאור</string>
+    <!-- Focus Mode -->
+    <string name="focus_title">מצב פוקוס</string>
+    <string name="focus_pause">השהה</string>
+    <string name="focus_resume">המשך</string>
+    <string name="focus_finish">סיים משימה</string>
+    <string name="focus_cancel">בטל פוקוס</string>
+    <string name="focus_confirm_cancel">האם אתה בטוח שברצונך לבטל? ההתקדמות תישמר.</string>
+    <string name="focus_confirm_finish">לסמן משימה זו כהושלמה?</string>
+    <string name="focus_time_spent">זמן שהושקע</string>
+    <string name="focus_estimated_time">זמן משוער</string>
+    <string name="focus_progress">התקדמות</string>
+    <string name="focus_dnd_active">מצב לא להפריע פעיל</string>
+    <string name="focus_stay_focused">!הישאר ממוקד 🎯</string>
     <!-- Risk Status -->
     <string name="risk_at_risk">בסיכון</string>
     <string name="risk_warning">אזהרה</string>

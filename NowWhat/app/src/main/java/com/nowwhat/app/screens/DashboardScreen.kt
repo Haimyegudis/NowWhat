@@ -42,7 +42,8 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToStats: () -> Unit,
     onStartFocus: (Task) -> Unit,
-    onFilterClick: (String) -> Unit
+    onFilterClick: (String) -> Unit,
+    onCreateTask: () -> Unit = {}
 ) {
     // Calculate time of day for greeting
     val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -130,6 +131,16 @@ fun DashboardScreen(
                     }
                 )
             )
+        },
+        floatingActionButton = {
+            if (projects.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = onCreateTask,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Create Task")
+                }
+            }
         }
     ) { padding ->
         LazyColumn(
@@ -211,6 +222,7 @@ fun DashboardScreen(
         }
     }
 }
+
 @Composable
 fun TodaysScheduleCard(
     events: List<CalendarEvent>,
@@ -256,9 +268,6 @@ fun TodaysScheduleCard(
     }
 }
 
-/**
- * Event Item
- */
 @Composable
 fun EventItem(event: CalendarEvent, isDuringWorkHours: Boolean) {
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -300,9 +309,6 @@ fun EventItem(event: CalendarEvent, isDuringWorkHours: Boolean) {
     }
 }
 
-/**
- * Overview Section (Critical & At Risk)
- */
 @Composable
 fun OverviewSection(
     criticalCount: Int,
@@ -342,9 +348,6 @@ fun OverviewSection(
     }
 }
 
-/**
- * Interactive Card
- */
 @Composable
 fun InteractiveCard(
     title: String,
@@ -389,9 +392,6 @@ fun InteractiveCard(
     }
 }
 
-/**
- * Total Progress Card
- */
 @Composable
 fun TotalProgressCard(
     overallProgress: Int,
@@ -455,9 +455,7 @@ fun TotalProgressCard(
         }
     }
 }
-/**
- * Recommended Focus Card
- */
+
 @Composable
 fun RecommendedFocusCard(
     task: Task,
@@ -524,9 +522,6 @@ fun RecommendedFocusCard(
     }
 }
 
-/**
- * No Tasks Card
- */
 @Composable
 fun NoTasksCard() {
     Card(
@@ -558,9 +553,6 @@ fun NoTasksCard() {
     }
 }
 
-/**
- * Daily Capacity Card
- */
 @Composable
 fun DailyCapacityCard(
     plannedMinutes: Int,
@@ -643,9 +635,6 @@ fun CapacityItem(label: String, minutes: Int, color: Color) {
     }
 }
 
-/**
- * Priority Badge
- */
 @Composable
 fun PriorityBadge(priority: Priority) {
     val (text, color) = when (priority) {
@@ -669,9 +658,6 @@ fun PriorityBadge(priority: Priority) {
     }
 }
 
-/**
- * Severity Badge
- */
 @Composable
 fun SeverityBadge(severity: Severity) {
     val (text, color) = when (severity) {

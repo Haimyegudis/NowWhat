@@ -110,14 +110,54 @@
     <string name="priority_high">High</string>
     <string name="priority_medium">Medium</string>
     <string name="priority_low">Low</string>
-
+    <!-- Project Detail Screen -->
+    <string name="project_detail_title">Project Details</string>
+    <string name="project_detail_tasks">Tasks</string>
+    <string name="project_detail_no_tasks">No tasks in this project</string>
+    <string name="project_detail_add_first_task">Add your first task</string>
+    <string name="project_detail_edit">Edit Project</string>
+    <string name="project_detail_delete">Delete Project</string>
+    <string name="project_detail_delete_confirm">Are you sure you want to delete this project? All tasks will be deleted too.</string>
+    <string name="project_detail_confirm">Confirm</string>
+    <string name="project_detail_all_tasks">All Tasks</string>
+    <string name="project_detail_active">Active</string>
+    <string name="project_detail_completed">Completed</string>
+    <string name="project_detail_critical">Critical</string>
     <!-- Severity -->
     <string name="severity_critical">Critical</string>
     <string name="severity_high">High</string>
     <string name="severity_medium">Medium</string>
     <string name="severity_low">Low</string>
-
+    <!-- Task Detail Screen -->
+    <string name="task_detail_title">Task Details</string>
+    <string name="task_detail_edit">Edit Task</string>
+    <string name="task_detail_delete">Delete Task</string>
+    <string name="task_detail_delete_confirm">Are you sure you want to delete this task?</string>
+    <string name="task_detail_mark_done">Mark as Done</string>
+    <string name="task_detail_mark_undone">Mark as Undone</string>
+    <string name="task_detail_start_focus">Start Focus</string>
+    <string name="task_detail_estimated">Estimated</string>
+    <string name="task_detail_actual">Actual</string>
+    <string name="task_detail_remaining">Remaining</string>
+    <string name="task_detail_subtasks">Sub-tasks</string>
+    <string name="task_detail_no_subtasks">No sub-tasks yet</string>
+    <string name="task_detail_add_subtask">Add Sub-task</string>
+    <string name="task_detail_description">Description</string>
+    <string name="task_detail_no_description">No description</string>
     <!-- Risk Status -->
+    <!-- Focus Mode -->
+    <string name="focus_title">Focus Mode</string>
+    <string name="focus_pause">Pause</string>
+    <string name="focus_resume">Resume</string>
+    <string name="focus_finish">Finish Task</string>
+    <string name="focus_cancel">Cancel Focus</string>
+    <string name="focus_confirm_cancel">Are you sure you want to cancel? Progress will be saved.</string>
+    <string name="focus_confirm_finish">Mark this task as complete?</string>
+    <string name="focus_time_spent">Time Spent</string>
+    <string name="focus_estimated_time">Estimated Time</string>
+    <string name="focus_progress">Progress</string>
+    <string name="focus_dnd_active">Do Not Disturb is active</string>
+    <string name="focus_stay_focused">Stay focused! 🎯</string>
     <string name="risk_at_risk">At Risk</string>
     <string name="risk_warning">Warning</string>
     <string name="risk_on_track">On Track</string>

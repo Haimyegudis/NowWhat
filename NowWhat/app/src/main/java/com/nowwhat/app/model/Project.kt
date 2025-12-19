@@ -10,6 +10,8 @@ data class Project(
     val id: Int = 0,
     val name: String,
     val description: String = "",
+    val priority: Priority = Priority.Medium,
+    val severity: Severity = Severity.Medium,
     val deadline: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val isCompleted: Boolean = false,

@@ -101,13 +101,53 @@
     <string name="priority_high">Высокий</string>
     <string name="priority_medium">Средний</string>
     <string name="priority_low">Низкий</string>
-
+    <!-- Project Detail Screen -->
+    <string name="project_detail_title">Детали проекта</string>
+    <string name="project_detail_tasks">Задачи</string>
+    <string name="project_detail_no_tasks">В этом проекте нет задач</string>
+    <string name="project_detail_add_first_task">Добавьте первую задачу</string>
+    <string name="project_detail_edit">Изменить проект</string>
+    <string name="project_detail_delete">Удалить проект</string>
+    <string name="project_detail_delete_confirm">Вы уверены, что хотите удалить этот проект? Все задачи также будут удалены.</string>
+    <string name="project_detail_confirm">Подтвердить</string>
+    <string name="project_detail_all_tasks">Все задачи</string>
+    <string name="project_detail_active">Активные</string>
+    <string name="project_detail_completed">Завершенные</string>
+    <string name="project_detail_critical">Критические</string>
     <!-- Severity -->
     <string name="severity_critical">Критическая</string>
     <string name="severity_high">Высокая</string>
     <string name="severity_medium">Средняя</string>
     <string name="severity_low">Низкая</string>
-
+    <!-- Focus Mode -->
+    <string name="focus_title">Режим фокуса</string>
+    <string name="focus_pause">Пауза</string>
+    <string name="focus_resume">Продолжить</string>
+    <string name="focus_finish">Завершить задачу</string>
+    <string name="focus_cancel">Отменить фокус</string>
+    <string name="focus_confirm_cancel">Вы уверены, что хотите отменить? Прогресс будет сохранен.</string>
+    <string name="focus_confirm_finish">Отметить эту задачу как выполненную?</string>
+    <string name="focus_time_spent">Затраченное время</string>
+    <string name="focus_estimated_time">Оценка времени</string>
+    <string name="focus_progress">Прогресс</string>
+    <string name="focus_dnd_active">Режим "Не беспокоить" активен</string>
+    <string name="focus_stay_focused">Оставайтесь сосредоточенными! 🎯</string>
+    <!-- Task Detail Screen -->
+    <string name="task_detail_title">Детали задачи</string>
+    <string name="task_detail_edit">Изменить задачу</string>
+    <string name="task_detail_delete">Удалить задачу</string>
+    <string name="task_detail_delete_confirm">Вы уверены, что хотите удалить эту задачу?</string>
+    <string name="task_detail_mark_done">Отметить выполненной</string>
+    <string name="task_detail_mark_undone">Отменить выполнение</string>
+    <string name="task_detail_start_focus">Начать фокус</string>
+    <string name="task_detail_estimated">Оценка</string>
+    <string name="task_detail_actual">Факт</string>
+    <string name="task_detail_remaining">Осталось</string>
+    <string name="task_detail_subtasks">Подзадачи</string>
+    <string name="task_detail_no_subtasks">Подзадач пока нет</string>
+    <string name="task_detail_add_subtask">Добавить подзадачу</string>
+    <string name="task_detail_description">Описание</string>
+    <string name="task_detail_no_description">Нет описания</string>
     <!-- Risk Status -->
     <string name="risk_at_risk">В опасности</string>
     <string name="risk_warning">Предупреждение</string>

@@ -1,5 +1,8 @@
 package com.nowwhat.app.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,11 +20,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nowwhat.app.R
+import com.nowwhat.app.model.Priority
 import com.nowwhat.app.model.Project
 import com.nowwhat.app.model.RiskStatus
+import com.nowwhat.app.model.Task
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -30,12 +36,17 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun ProjectsScreen(
     projects: List<Project>,
+    tasks: List<Task>,
     onProjectClick: (Project) -> Unit,
+    onTaskClick: (Task) -> Unit,
     onCreateProject: () -> Unit,
+    onCreateTask: () -> Unit = {},
+    onToggleTaskDone: (Task) -> Unit,
     onBackClick: () -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf("all") }
     var searchQuery by remember { mutableStateOf("") }
+    var expandedProjectIds by remember { mutableStateOf(setOf<Int>()) }
 
     // Filter projects
     val filteredProjects = projects.filter { project ->
@@ -69,11 +80,26 @@ fun ProjectsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateProject,
-                containerColor = Color(0xFF6200EE)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.projects_add))
+                // Create Task FAB
+                if (projects.isNotEmpty()) {
+                    SmallFloatingActionButton(
+                        onClick = onCreateTask,
+                        containerColor = Color(0xFF03DAC5)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Create Task")
+                    }
+                }
+                // Create Project FAB
+                FloatingActionButton(
+                    onClick = onCreateProject,
+                    containerColor = Color(0xFF6200EE)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.projects_add))
+                }
             }
         }
     ) { padding ->
@@ -143,9 +169,23 @@ fun ProjectsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredProjects) { project ->
-                        ProjectCard(
+                        val projectTasks = tasks.filter { it.projectId == project.id }
+                        val isExpanded = expandedProjectIds.contains(project.id)
+
+                        ExpandableProjectCard(
                             project = project,
-                            onClick = { onProjectClick(project) }
+                            tasks = projectTasks,
+                            isExpanded = isExpanded,
+                            onExpandToggle = {
+                                expandedProjectIds = if (isExpanded) {
+                                    expandedProjectIds - project.id
+                                } else {
+                                    expandedProjectIds + project.id
+                                }
+                            },
+                            onProjectClick = { onProjectClick(project) },
+                            onTaskClick = onTaskClick,
+                            onToggleTaskDone = onToggleTaskDone
                         )
                     }
                 }
@@ -155,9 +195,14 @@ fun ProjectsScreen(
 }
 
 @Composable
-fun ProjectCard(
+fun ExpandableProjectCard(
     project: Project,
-    onClick: () -> Unit
+    tasks: List<Task>,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit,
+    onProjectClick: () -> Unit,
+    onTaskClick: (Task) -> Unit,
+    onToggleTaskDone: (Task) -> Unit
 ) {
     val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     val today = Calendar.getInstance().apply {
@@ -188,9 +233,7 @@ fun ProjectCard(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (project.isCompleted) {
@@ -202,22 +245,37 @@ fun ProjectCard(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
+            // Project Header (Clickable for expand/collapse)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onExpandToggle() }
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        project.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (project.isCompleted) Color.Gray else Color.Black
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            project.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (project.isCompleted) Color.Gray else Color.Black
+                        )
+                        if (tasks.isNotEmpty()) {
+                            Icon(
+                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = "Expand",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
 
                     if (project.description.isNotEmpty()) {
                         Spacer(Modifier.height(4.dp))
@@ -243,52 +301,164 @@ fun ProjectCard(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-
             // Progress Bar
-            LinearProgressIndicator(
-                progress = { project.progress / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = if (project.isCompleted) Color(0xFF4CAF50) else Color(0xFF6200EE),
-                trackColor = Color(0xFFE0E0E0)
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "${stringResource(R.string.projects_progress)}: ${project.progress}%",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                LinearProgressIndicator(
+                    progress = { project.progress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = if (project.isCompleted) Color(0xFF4CAF50) else Color(0xFF6200EE),
+                    trackColor = Color(0xFFE0E0E0)
                 )
-                Text(
-                    "${project.completedTasks}/${project.totalTasks} ${stringResource(R.string.projects_tasks)}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "${stringResource(R.string.projects_progress)}: ${project.progress}%",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    Text(
+                        "${project.completedTasks}/${project.totalTasks} ${stringResource(R.string.projects_tasks)}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                if (deadlineText != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = deadlineColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            deadlineText,
+                            fontSize = 12.sp,
+                            color = deadlineColor,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
-            if (deadlineText != null) {
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = deadlineColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
+            // Expandable Tasks List
+            AnimatedVisibility(
+                visible = isExpanded && tasks.isNotEmpty(),
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Divider(color = Color.LightGray.copy(alpha = 0.5f))
+
+                    tasks.forEach { task ->
+                        TaskItemInProject(
+                            task = task,
+                            onClick = { onTaskClick(task) },
+                            onToggleDone = { onToggleTaskDone(task) }
+                        )
+                        Divider(color = Color.LightGray.copy(alpha = 0.3f))
+                    }
+                }
+            }
+
+            // View Details Button (always visible)
+            TextButton(
+                onClick = onProjectClick,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("View Details")
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskItemInProject(
+    task: Task,
+    onClick: () -> Unit,
+    onToggleDone: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = task.isDone,
+            onCheckedChange = { onToggleDone() },
+            colors = CheckboxDefaults.colors(
+                checkedColor = Color(0xFF4CAF50)
+            )
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                task.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                textDecoration = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None,
+                color = if (task.isDone) Color.Gray else Color.Black
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Priority indicator
+                val priorityEmoji = when (task.priority) {
+                    Priority.Immediate -> "⚡"
+                    Priority.High -> "🔴"
+                    Priority.Medium -> "🟡"
+                    Priority.Low -> "🟢"
+                }
+                Text(priorityEmoji, fontSize = 12.sp)
+
+                // Time estimate
+                Text(
+                    "${task.estimatedMinutes / 60}h ${task.estimatedMinutes % 60}m",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+
+                // Status
+                if (task.isOverdue && !task.isDone) {
                     Text(
-                        deadlineText,
-                        fontSize = 12.sp,
-                        color = deadlineColor,
-                        fontWeight = FontWeight.Medium
+                        "⚠️ Overdue",
+                        fontSize = 11.sp,
+                        color = Color(0xFFD32F2F),
+                        fontWeight = FontWeight.Bold
+                    )
+                } else if (task.isDueToday && !task.isDone) {
+                    Text(
+                        "🔴 Today",
+                        fontSize = 11.sp,
+                        color = Color(0xFFFF5722),
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
