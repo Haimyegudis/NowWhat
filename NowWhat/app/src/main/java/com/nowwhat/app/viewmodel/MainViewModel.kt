@@ -19,77 +19,118 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val calendarRepository = CalendarRepository(application)
     val userPreferences = UserPreferences(application)
 
-    // User profile
     val user: StateFlow<UserProfile?> = userPreferences.userProfileFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    // Tasks
-    val tasks: StateFlow<List<Task>> = dao.getAllTasks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    // Calendar events
     private val _calendarEvents = MutableStateFlow<List<CalendarEvent>>(emptyList())
     val calendarEvents: StateFlow<List<CalendarEvent>> = _calendarEvents.asStateFlow()
 
-    // Available minutes today
     private val _availableMinutes = MutableStateFlow(0)
     val availableMinutes: StateFlow<Int> = _availableMinutes.asStateFlow()
 
-    // Projects with calculated stats
+    val tasks: StateFlow<List<Task>> = combine(
+        dao.getAllTasks(),
+        availableMinutes
+    ) { tasks, availableMins ->
+        tasks.map { task ->
+            task.apply {
+                urgencyScore = PriorityAlgorithm.calculateUrgency(this, availableMins)
+                urgency = PriorityAlgorithm.getUrgencyLevel(urgencyScore)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val projects: StateFlow<List<Project>> = combine(
         dao.getAllProjects(),
         tasks,
         user
-    ) { projects, tasks, user ->
-        if (user == null) {
+    ) { projects, allTasks, currentUser ->
+        if (currentUser == null) {
             projects
         } else {
             projects.map { project ->
-                val projectTasks = tasks.filter { it.projectId == project.id }
+                val projectTasks = allTasks.filter { it.projectId == project.id }
+                val allTasksDone = projectTasks.isNotEmpty() && projectTasks.all { it.isDone }
+
                 project.apply {
                     totalTasks = projectTasks.size
                     completedTasks = projectTasks.count { it.isDone }
                     risk = PriorityAlgorithm.calculateProjectRisk(
                         project = this,
                         tasks = projectTasks,
-                        user = user
+                        user = currentUser
                     )
                     timeNeededMinutes = projectTasks
                         .filter { !it.isDone }
                         .sumOf { it.estimatedMinutes }
                 }
+
+                // Auto-complete project if all tasks are done and not manually marked
+                if (allTasksDone && !project.isCompleted && !project.markedComplete && project.totalTasks > 0) {
+                    viewModelScope.launch {
+                        try {
+                            dao.updateProject(
+                                project.copy(
+                                    isCompleted = true,
+                                    completedAt = System.currentTimeMillis()
+                                )
+                            )
+                        } catch (e: Exception) {
+                            // Ignore update errors
+                        }
+                    }
+                }
+
+                project
             }
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // SubTasks
     val subTasks: StateFlow<List<SubTask>> = dao.getAllSubTasks()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
-        refreshCalendarEvents()
-    }
-
-    // ========== Calendar ==========
-    fun refreshCalendarEvents() {
         viewModelScope.launch {
-            user.value?.let { userProfile ->
-                val today = Calendar.getInstance()
-                val events = calendarRepository.getEventsForDate(
-                    date = today,
-                    user = userProfile
-                )
-                _calendarEvents.value = events
+            user.collect { userProfile ->
+                if (userProfile != null) {
+                    refreshCalendarEvents()
+                }
+            }
+        }
 
-                val availableMins = calendarRepository.calculateAvailableMinutesToday(
-                    user = userProfile
-                )
-                _availableMinutes.value = availableMins
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(5 * 60 * 1000L)
+                if (user.value != null) {
+                    refreshCalendarEvents()
+                }
             }
         }
     }
 
-    // ========== Projects ==========
+    fun refreshCalendarEvents() {
+        viewModelScope.launch {
+            try {
+                user.value?.let { userProfile ->
+                    val today = Calendar.getInstance()
+                    val events = calendarRepository.getEventsForDate(
+                        date = today,
+                        user = userProfile
+                    )
+                    _calendarEvents.value = events
+
+                    val availableMins = calendarRepository.calculateAvailableMinutesToday(
+                        user = userProfile
+                    )
+                    _availableMinutes.value = availableMins
+                }
+            } catch (e: Exception) {
+                // Ignore calendar errors - maybe no permission
+                _availableMinutes.value = user.value?.dailyWorkMinutes ?: 480
+            }
+        }
+    }
+
     fun createProject(project: Project) {
         viewModelScope.launch {
             dao.insertProject(project)
@@ -108,7 +149,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ========== Tasks ==========
+    fun markProjectComplete(project: Project) {
+        viewModelScope.launch {
+            dao.updateProject(
+                project.copy(
+                    isCompleted = true,
+                    markedComplete = true,
+                    completedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun markProjectIncomplete(project: Project) {
+        viewModelScope.launch {
+            dao.updateProject(
+                project.copy(
+                    isCompleted = false,
+                    markedComplete = false,
+                    completedAt = null
+                )
+            )
+        }
+    }
+
     fun createTask(task: Task) {
         viewModelScope.launch {
             dao.insertTask(task)
@@ -171,7 +235,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ========== SubTasks ==========
     fun createSubTask(subTask: SubTask) {
         viewModelScope.launch {
             dao.insertSubTask(subTask)
@@ -200,7 +263,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ========== Streak ==========
     private fun updateStreak() {
         viewModelScope.launch {
             user.value?.let { currentUser ->
@@ -221,7 +283,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-    // ========== Statistics ==========
+
     suspend fun getTasksCompletedToday(): Int {
         val today = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -344,7 +406,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return dao.getAverageEstimationAccuracy() ?: 0f
     }
 
-    // ========== Clear All Data ==========
     suspend fun clearAllData() {
         userPreferences.clearAll()
     }

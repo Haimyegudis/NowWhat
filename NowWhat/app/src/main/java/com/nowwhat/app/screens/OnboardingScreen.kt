@@ -33,50 +33,30 @@ fun OnboardingScreen(
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
 
-    // Get initial language from preferences
-    // Get initial language from preferences
     val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-    val initialLanguageCode = sharedPrefs.getString("language", "English") ?: "English"
-    val initialLanguage = try {
-        AppLanguage.valueOf(initialLanguageCode)
-    } catch (e: Exception) {
-        AppLanguage.English
-    }
+    val initialLanguageCode = sharedPrefs.getString("language", "en") ?: "en"
+    val initialLanguage = LanguageManager.getAppLanguage(initialLanguageCode)
 
-    // State
     var name by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf(Gender.NotSpecified) }
     var selectedLanguage by remember { mutableStateOf(initialLanguage) }
-    var isFirstComposition by remember { mutableStateOf(true) }
     var startHour by remember { mutableIntStateOf(9) }
     var endHour by remember { mutableIntStateOf(17) }
     var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5)) }
     var focusDndDuration by remember { mutableIntStateOf(30) }
 
-    // Handle language change (but skip on first composition)
-// Handle language change (but skip on first composition)
+    // Handle language change
     LaunchedEffect(selectedLanguage) {
-        if (isFirstComposition) {
-            isFirstComposition = false
-            return@LaunchedEffect
+        val newLanguageCode = LanguageManager.getLanguageCode(selectedLanguage)
+        val currentLanguageCode = sharedPrefs.getString("language", "en")
+
+        if (newLanguageCode != currentLanguageCode) {
+            sharedPrefs.edit().putString("language", newLanguageCode).apply()
+            activity?.recreate()
         }
-
-        // Debug: Log language change
-        android.util.Log.d("OnboardingScreen", "Language changed to: ${selectedLanguage.name}")
-
-        // Save language preference immediately
-        sharedPrefs.edit().putString("language", selectedLanguage.name).commit() // Use commit() instead of apply()
-
-        // Verify it was saved
-        val savedLang = sharedPrefs.getString("language", "NOT_SAVED")
-        android.util.Log.d("OnboardingScreen", "Saved language verified: $savedLang")
-
-        // Recreate activity to apply language
-        activity?.recreate()
     }
 
-    // Time Pickers
     val startTimePicker = remember {
         TimePickerDialog(
             context,
@@ -133,7 +113,6 @@ fun OnboardingScreen(
                 )
             }
 
-            // Language (FIRST - so it changes UI immediately)
             item {
                 Column {
                     Text(
@@ -150,11 +129,7 @@ fun OnboardingScreen(
                         AppLanguage.values().forEach { language ->
                             FilterChip(
                                 selected = selectedLanguage == language,
-                                onClick = {
-                                    if (selectedLanguage != language) {
-                                        selectedLanguage = language
-                                    }
-                                },
+                                onClick = { selectedLanguage = language },
                                 label = {
                                     Text(
                                         getLanguageDisplayName(language),
@@ -168,7 +143,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Name
             item {
                 OutlinedTextField(
                     value = name,
@@ -180,7 +154,6 @@ fun OnboardingScreen(
                 )
             }
 
-            // Role
             item {
                 OutlinedTextField(
                     value = role,
@@ -192,7 +165,6 @@ fun OnboardingScreen(
                 )
             }
 
-            // Gender
             item {
                 Column {
                     Text(
@@ -223,7 +195,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Work Hours
             item {
                 Column {
                     Text(
@@ -268,7 +239,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Work Days
             item {
                 Column {
                     Text(
@@ -285,7 +255,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Focus Mode DND Duration
             item {
                 Column {
                     Text(
@@ -311,7 +280,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Get Started Button
             item {
                 Spacer(Modifier.height(20.dp))
                 Button(
@@ -326,6 +294,7 @@ fun OnboardingScreen(
                                 endWorkHour = endHour,
                                 workDays = selectedDays,
                                 focusModeDndDuration = focusDndDuration,
+                                focusDndMinutes = focusDndDuration,
                                 streak = 0,
                                 breakReminder = true
                             )
@@ -369,7 +338,6 @@ fun getGenderString(gender: Gender): String {
 
 @Composable
 fun getLanguageDisplayName(language: AppLanguage): String {
-    // Always show language names in their native form
     return when (language) {
         AppLanguage.English -> "English"
         AppLanguage.Hebrew -> "עברית"

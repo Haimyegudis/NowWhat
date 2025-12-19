@@ -68,7 +68,7 @@ fun DashboardScreen(
     val criticalTasks = tasks.filter {
         PriorityAlgorithm.isTaskCritical(it, availableMinutes) && !it.isDone
     }
-    val atRiskProjects = projects.filter { it.risk == RiskStatus.AtRisk }
+    val atRiskProjects = projects.filter { it.risk == RiskStatus.AtRisk && !it.isCompleted }
 
     // Overall progress
     val totalTasks = tasks.count()
@@ -77,12 +77,14 @@ fun DashboardScreen(
         (completedTasks * 100f / totalTasks).toInt()
     } else 0
 
+    // Capacity period selector
+    var selectedPeriod by remember { mutableStateOf("Daily") }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Sun/Moon icon
                         Icon(
                             imageVector = if (isDayTime) Icons.Default.WbSunny else Icons.Default.Nightlight,
                             contentDescription = null,
@@ -106,7 +108,6 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    // Stats
                     IconButton(onClick = onNavigateToStats) {
                         Icon(
                             Icons.Default.EmojiEvents,
@@ -114,7 +115,6 @@ fun DashboardScreen(
                             tint = Color.White
                         )
                     }
-                    // Settings
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             Icons.Default.Settings,
@@ -166,12 +166,15 @@ fun DashboardScreen(
                 }
             }
 
-            // ========== 2. Daily Capacity ==========
+            // ========== 2. Capacity Card with Period Selector ==========
             item {
-                DailyCapacityCard(
+                CapacityCard(
+                    selectedPeriod = selectedPeriod,
+                    onPeriodChange = { selectedPeriod = it },
                     plannedMinutes = plannedMinutes,
                     availableMinutes = availableMinutes,
-                    freeMinutes = freeMinutes
+                    freeMinutes = freeMinutes,
+                    user = user
                 )
             }
 
@@ -196,12 +199,14 @@ fun DashboardScreen(
                 )
             }
 
-            // ========== 5. Total Progress ==========
+            // ========== 5. Total Progress (Clickable) ==========
             item {
                 TotalProgressCard(
                     overallProgress = overallProgress,
                     completedTasks = completedTasks,
-                    totalTasks = totalTasks
+                    totalTasks = totalTasks,
+                    tasks = tasks,
+                    onProgressClick = { /* Show incomplete tasks dialog */ }
                 )
             }
 
@@ -219,6 +224,111 @@ fun DashboardScreen(
             }
 
             item { Spacer(Modifier.height(40.dp)) }
+        }
+    }
+}
+
+@Composable
+fun CapacityCard(
+    selectedPeriod: String,
+    onPeriodChange: (String) -> Unit,
+    plannedMinutes: Int,
+    availableMinutes: Int,
+    freeMinutes: Int,
+    user: UserProfile
+) {
+    val periods = listOf("Daily", "Weekly", "Sprint", "Monthly")
+
+    // Calculate capacity based on period
+    val (totalCapacity, usedCapacity) = when (selectedPeriod) {
+        "Daily" -> availableMinutes to plannedMinutes
+        "Weekly" -> {
+            val weeklyMinutes = user.workDays.size * user.dailyWorkMinutes
+            weeklyMinutes to (plannedMinutes * user.workDays.size)
+        }
+        "Sprint" -> {
+            val sprintMinutes = 10 * user.workDays.size * user.dailyWorkMinutes / 7
+            sprintMinutes to (plannedMinutes * 10)
+        }
+        "Monthly" -> {
+            val monthlyMinutes = 22 * user.dailyWorkMinutes
+            monthlyMinutes to (plannedMinutes * 22)
+        }
+        else -> availableMinutes to plannedMinutes
+    }
+
+    val freeCapacity = (totalCapacity - usedCapacity).coerceAtLeast(0)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF5F5F5)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                "📊 Capacity",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Period Selector
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                periods.forEach { period ->
+                    FilterChip(
+                        selected = selectedPeriod == period,
+                        onClick = { onPeriodChange(period) },
+                        label = { Text(period, fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Progress Bar
+            val progressPercent = if (totalCapacity > 0) {
+                (usedCapacity.toFloat() / totalCapacity).coerceIn(0f, 1f)
+            } else 0f
+
+            LinearProgressIndicator(
+                progress = { progressPercent },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+                color = if (progressPercent > 0.9f) Color(0xFFFF5722) else Color(0xFF4CAF50),
+                trackColor = Color(0xFFE0E0E0)
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                CapacityItem(
+                    label = stringResource(R.string.dashboard_workload),
+                    minutes = usedCapacity,
+                    color = Color(0xFF2196F3)
+                )
+                CapacityItem(
+                    label = stringResource(R.string.dashboard_free_time),
+                    minutes = freeCapacity,
+                    color = Color(0xFF4CAF50)
+                )
+            }
         }
     }
 }
@@ -396,10 +506,23 @@ fun InteractiveCard(
 fun TotalProgressCard(
     overallProgress: Int,
     completedTasks: Int,
-    totalTasks: Int
+    totalTasks: Int,
+    tasks: List<Task>,
+    onProgressClick: () -> Unit
 ) {
+    var showIncompleteDialog by remember { mutableStateOf(false) }
+
+    if (showIncompleteDialog) {
+        IncompleteTasksDialog(
+            tasks = tasks.filter { !it.isDone },
+            onDismiss = { showIncompleteDialog = false }
+        )
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showIncompleteDialog = true },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFF5F5F5)
@@ -452,8 +575,71 @@ fun TotalProgressCard(
                 color = Color.Gray,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                "Tap to see incomplete tasks",
+                fontSize = 12.sp,
+                color = Color(0xFF6200EE),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
     }
+}
+
+@Composable
+fun IncompleteTasksDialog(
+    tasks: List<Task>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Incomplete Tasks (${tasks.size})") },
+        text = {
+            LazyColumn {
+                items(tasks) { task ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        UrgencyIndicator(task.urgency)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            task.title,
+                            fontSize = 14.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun UrgencyIndicator(urgency: Urgency) {
+    val color = when (urgency) {
+        Urgency.Critical -> Color(0xFFD32F2F)
+        Urgency.VeryHigh -> Color(0xFFFF5722)
+        Urgency.High -> Color(0xFFFF9800)
+        Urgency.Medium -> Color(0xFF4CAF50)
+        Urgency.Low -> Color(0xFF2196F3)
+    }
+
+    Box(
+        modifier = Modifier
+            .size(12.dp)
+            .clip(CircleShape)
+            .background(color)
+    )
 }
 
 @Composable
@@ -494,12 +680,7 @@ fun RecommendedFocusCard(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(12.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        PriorityBadge(task.priority)
-                        SeverityBadge(task.severity)
-                    }
+                    UrgencyBadge(task.urgency, task.urgencyScore)
                 }
 
                 // Play Button
@@ -518,6 +699,36 @@ fun RecommendedFocusCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun UrgencyBadge(urgency: Urgency, score: Int) {
+    val (text, emoji, color) = when (urgency) {
+        Urgency.Critical -> Triple("Critical", "🔴", Color(0xFFFFCDD2))
+        Urgency.VeryHigh -> Triple("Very High", "🟠", Color(0xFFFFE0B2))
+        Urgency.High -> Triple("High", "🟡", Color(0xFFFFF9C4))
+        Urgency.Medium -> Triple("Medium", "🟢", Color(0xFFC8E6C9))
+        Urgency.Low -> Triple("Low", "🔵", Color(0xFFBBDEFB))
+    }
+
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = color
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(emoji, fontSize = 14.sp)
+            Text(
+                "$text ($score)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
         }
     }
 }
@@ -554,68 +765,6 @@ fun NoTasksCard() {
 }
 
 @Composable
-fun DailyCapacityCard(
-    plannedMinutes: Int,
-    availableMinutes: Int,
-    freeMinutes: Int
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Text(
-                stringResource(R.string.dashboard_daily_capacity),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Spacer(Modifier.height(16.dp))
-
-            // Progress Bar
-            val progressPercent = if (availableMinutes > 0) {
-                (plannedMinutes.toFloat() / availableMinutes).coerceIn(0f, 1f)
-            } else 0f
-
-            LinearProgressIndicator(
-                progress = { progressPercent },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-                color = if (progressPercent > 0.9f) Color(0xFFFF5722) else Color(0xFF4CAF50),
-                trackColor = Color(0xFFE0E0E0)
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                CapacityItem(
-                    label = stringResource(R.string.dashboard_workload),
-                    minutes = plannedMinutes,
-                    color = Color(0xFF2196F3)
-                )
-                CapacityItem(
-                    label = stringResource(R.string.dashboard_free_time),
-                    minutes = freeMinutes,
-                    color = Color(0xFF4CAF50)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun CapacityItem(label: String, minutes: Int, color: Color) {
     Column {
         Text(
@@ -632,51 +781,5 @@ fun CapacityItem(label: String, minutes: Int, color: Color) {
                 color = color
             )
         }
-    }
-}
-
-@Composable
-fun PriorityBadge(priority: Priority) {
-    val (text, color) = when (priority) {
-        Priority.Immediate -> "⚡ Immediate" to Color(0xFFFF5722)
-        Priority.High -> "🔴 High" to Color(0xFFFF9800)
-        Priority.Medium -> "🟡 Medium" to Color(0xFFFFC107)
-        Priority.Low -> "🟢 Low" to Color(0xFF4CAF50)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.2f)
-    ) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-    }
-}
-
-@Composable
-fun SeverityBadge(severity: Severity) {
-    val (text, color) = when (severity) {
-        Severity.Critical -> "💀 Critical" to Color(0xFFD32F2F)
-        Severity.High -> "⚠️ High" to Color(0xFFFF5722)
-        Severity.Medium -> "📊 Medium" to Color(0xFF2196F3)
-        Severity.Low -> "📋 Low" to Color(0xFF9E9E9E)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.2f)
-    ) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
     }
 }

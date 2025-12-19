@@ -2,6 +2,7 @@ package com.nowwhat.app.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,10 +39,16 @@ fun ProjectDetailScreen(
     onCreateTask: () -> Unit,
     onToggleTaskDone: (Task) -> Unit,
     onEditProject: () -> Unit,
-    onDeleteProject: () -> Unit
+    onDeleteProject: () -> Unit,
+    onToggleProjectComplete: (Boolean) -> Unit = {}
 ) {
+    val isDarkMode = isSystemInDarkTheme()
+    val textColor = if (isDarkMode) Color.White else Color.Black
+    val cardColor = if (isDarkMode) Color(0xFF2C2C2C) else Color(0xFFF5F5F5)
+
     var selectedFilter by remember { mutableStateOf("all") }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCompleteDialog by remember { mutableStateOf(false) }
 
     // Filter tasks
     val filteredTasks = tasks.filter { task ->
@@ -80,39 +87,80 @@ fun ProjectDetailScreen(
         )
     }
 
+    // Complete confirmation dialog
+    if (showCompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showCompleteDialog = false },
+            title = { Text("Mark Project as Complete?") },
+            text = {
+                Text(
+                    if (project.isCompleted)
+                        "Mark this project as incomplete? It will appear in active projects again."
+                    else
+                        "Mark this project as complete? It will be moved to completed projects."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCompleteDialog = false
+                        onToggleProjectComplete(!project.isCompleted)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (project.isCompleted) Color(0xFFFF9800) else Color(0xFF4CAF50)
+                    )
+                ) {
+                    Text(stringResource(R.string.project_detail_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCompleteDialog = false }) {
+                    Text(stringResource(R.string.create_project_cancel))
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(project.name) },
+                title = { Text(project.name, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 actions = {
+                    // Complete/Incomplete toggle
+                    IconButton(onClick = { showCompleteDialog = true }) {
+                        Icon(
+                            if (project.isCompleted) Icons.Default.Undo else Icons.Default.CheckCircle,
+                            contentDescription = if (project.isCompleted) "Mark Incomplete" else "Mark Complete",
+                            tint = Color.White
+                        )
+                    }
                     // Edit
                     IconButton(onClick = onEditProject) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White)
                     }
                     // Delete
                     IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF6200EE),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    containerColor = Color(0xFF6200EE)
                 )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateTask,
-                containerColor = Color(0xFF6200EE)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Task")
+            if (!project.isCompleted) {
+                FloatingActionButton(
+                    onClick = onCreateTask,
+                    containerColor = Color(0xFF6200EE)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Task", tint = Color.White)
+                }
             }
         }
     ) { padding ->
@@ -122,7 +170,7 @@ fun ProjectDetailScreen(
                 .padding(padding)
         ) {
             // Project Info Card
-            ProjectInfoCard(project)
+            ProjectInfoCard(project, isDarkMode, textColor, cardColor)
 
             Spacer(Modifier.height(16.dp))
 
@@ -159,7 +207,7 @@ fun ProjectDetailScreen(
 
             // Tasks List
             if (filteredTasks.isEmpty()) {
-                EmptyTasksState(onCreateTask)
+                EmptyTasksState(onCreateTask, project.isCompleted, isDarkMode, textColor)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -170,7 +218,9 @@ fun ProjectDetailScreen(
                         TaskCard(
                             task = task,
                             onClick = { onTaskClick(task) },
-                            onToggleDone = { onToggleTaskDone(task) }
+                            onToggleDone = { onToggleTaskDone(task) },
+                            isDarkMode = isDarkMode,
+                            textColor = textColor
                         )
                     }
                 }
@@ -180,14 +230,19 @@ fun ProjectDetailScreen(
 }
 
 @Composable
-fun ProjectInfoCard(project: Project) {
+fun ProjectInfoCard(
+    project: Project,
+    isDarkMode: Boolean,
+    textColor: Color,
+    cardColor: Color
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            containerColor = cardColor
         ),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -196,12 +251,40 @@ fun ProjectInfoCard(project: Project) {
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
+            // Completed Badge
+            if (project.isCompleted) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF4CAF50).copy(alpha = 0.2f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            "Completed",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+
             // Description
             if (project.description.isNotEmpty()) {
                 Text(
                     project.description,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = if (isDarkMode) Color.LightGray else Color.Gray
                 )
                 Spacer(Modifier.height(16.dp))
             }
@@ -215,12 +298,13 @@ fun ProjectInfoCard(project: Project) {
                 Text(
                     "${stringResource(R.string.projects_progress)}: ${project.progress}%",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
                 )
                 Text(
                     "${project.completedTasks}/${project.totalTasks}",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = if (isDarkMode) Color.LightGray else Color.Gray
                 )
             }
 
@@ -233,7 +317,7 @@ fun ProjectInfoCard(project: Project) {
                     .height(10.dp)
                     .clip(RoundedCornerShape(5.dp)),
                 color = Color(0xFF6200EE),
-                trackColor = Color(0xFFE0E0E0)
+                trackColor = if (isDarkMode) Color(0xFF424242) else Color(0xFFE0E0E0)
             )
 
             // Deadline
@@ -260,24 +344,27 @@ fun ProjectInfoCard(project: Project) {
                     Text(
                         "${stringResource(R.string.projects_deadline)}: ${dateFormat.format(Date(deadline))}",
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        color = if (isDarkMode) Color.LightGray else Color.Gray
                     )
                 }
             }
 
             // Risk Status
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Status:",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                RiskBadge(project.risk)
+            if (!project.isCompleted) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Status:",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = textColor
+                    )
+                    RiskBadge(project.risk)
+                }
             }
         }
     }
@@ -287,15 +374,23 @@ fun ProjectInfoCard(project: Project) {
 fun TaskCard(
     task: Task,
     onClick: () -> Unit,
-    onToggleDone: () -> Unit
+    onToggleDone: () -> Unit,
+    isDarkMode: Boolean,
+    textColor: Color
 ) {
+    val cardColor = if (task.isDone) {
+        if (isDarkMode) Color(0xFF1B5E20) else Color(0xFFE8F5E9)
+    } else {
+        if (isDarkMode) Color(0xFF2C2C2C) else Color.White
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (task.isDone) Color(0xFFE8F5E9) else Color.White
+            containerColor = cardColor
         ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -323,7 +418,9 @@ fun TaskCard(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     textDecoration = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (task.isDone) Color.Gray else Color.Black
+                    color = if (task.isDone) {
+                        if (isDarkMode) Color.Gray else Color.Gray
+                    } else textColor
                 )
 
                 Spacer(Modifier.height(4.dp))
@@ -332,14 +429,14 @@ fun TaskCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Priority badge
-                    PriorityChip(task.priority)
+                    // Urgency indicator
+                    UrgencyChip(task.urgency)
 
                     // Estimated time
                     Text(
                         "${task.estimatedMinutes / 60}h ${task.estimatedMinutes % 60}m",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = if (isDarkMode) Color.LightGray else Color.Gray
                     )
 
                     // Deadline
@@ -367,12 +464,13 @@ fun TaskCard(
 }
 
 @Composable
-fun PriorityChip(priority: Priority) {
-    val (emoji, color) = when (priority) {
-        Priority.Immediate -> "⚡" to Color(0xFFFF5722)
-        Priority.High -> "🔴" to Color(0xFFFF9800)
-        Priority.Medium -> "🟡" to Color(0xFFFFC107)
-        Priority.Low -> "🟢" to Color(0xFF4CAF50)
+fun UrgencyChip(urgency: Urgency) {
+    val (emoji, color) = when (urgency) {
+        Urgency.Critical -> "🔴" to Color(0xFFD32F2F)
+        Urgency.VeryHigh -> "🟠" to Color(0xFFFF5722)
+        Urgency.High -> "🟡" to Color(0xFFFF9800)
+        Urgency.Medium -> "🟢" to Color(0xFF4CAF50)
+        Urgency.Low -> "🔵" to Color(0xFF2196F3)
     }
 
     Surface(
@@ -388,7 +486,12 @@ fun PriorityChip(priority: Priority) {
 }
 
 @Composable
-fun EmptyTasksState(onCreateTask: () -> Unit) {
+fun EmptyTasksState(
+    onCreateTask: () -> Unit,
+    isProjectCompleted: Boolean,
+    isDarkMode: Boolean,
+    textColor: Color
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -399,7 +502,7 @@ fun EmptyTasksState(onCreateTask: () -> Unit) {
         Icon(
             Icons.Default.TaskAlt,
             contentDescription = null,
-            tint = Color.Gray,
+            tint = if (isDarkMode) Color.Gray else Color.Gray,
             modifier = Modifier.size(80.dp)
         )
         Spacer(Modifier.height(16.dp))
@@ -407,24 +510,26 @@ fun EmptyTasksState(onCreateTask: () -> Unit) {
             stringResource(R.string.project_detail_no_tasks),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Gray
+            color = textColor
         )
         Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.project_detail_add_first_task),
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
-        Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = onCreateTask,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF6200EE)
+        if (!isProjectCompleted) {
+            Text(
+                stringResource(R.string.project_detail_add_first_task),
+                fontSize = 14.sp,
+                color = if (isDarkMode) Color.LightGray else Color.Gray
             )
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Add Task")
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = onCreateTask,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF6200EE)
+                )
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                Spacer(Modifier.width(8.dp))
+                Text("Add Task", color = Color.White)
+            }
         }
     }
 }

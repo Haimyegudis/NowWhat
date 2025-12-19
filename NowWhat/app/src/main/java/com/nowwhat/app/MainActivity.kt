@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
             viewModel.refreshCalendarEvents()
         }
     }
+
     override fun attachBaseContext(newBase: Context) {
         val preferences = newBase.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
         val languageCode = preferences.getString("language", "en") ?: "en"
@@ -55,19 +56,20 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh calendar when returning to app
+        viewModel.refreshCalendarEvents()
+    }
 }
 
 @Composable
 fun NowWhatApp(viewModel: MainViewModel) {
-    // Observe user profile
     val user by viewModel.user.collectAsStateWithLifecycle()
-
-    // Track if this is first time completing onboarding
     var isFirstTimeSetup by remember { mutableStateOf(false) }
 
-    // Show loading while checking user
     if (user == null) {
-        // Check if we're still loading or truly no user
         var isLoading by remember { mutableStateOf(true) }
 
         LaunchedEffect(Unit) {
@@ -83,7 +85,6 @@ fun NowWhatApp(viewModel: MainViewModel) {
                 CircularProgressIndicator()
             }
         } else {
-            // No user - show onboarding
             OnboardingScreen(
                 userPreferences = viewModel.userPreferences,
                 onFinish = {
@@ -93,7 +94,6 @@ fun NowWhatApp(viewModel: MainViewModel) {
             )
         }
     } else {
-        // User exists - show app with navigation
         AppNavigation(
             viewModel = viewModel,
             startDestination = Routes.Dashboard

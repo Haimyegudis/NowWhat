@@ -1,5 +1,8 @@
 package com.nowwhat.app.screens
 
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,14 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nowwhat.app.R
-import com.nowwhat.app.model.Priority
-import com.nowwhat.app.model.Severity
 import com.nowwhat.app.model.Task
+import com.nowwhat.app.model.Urgency
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -32,16 +35,30 @@ fun FocusModeScreen(
     onBackClick: () -> Unit,
     onFinishTask: (actualMinutes: Int) -> Unit
 ) {
+    val context = LocalContext.current
     var elapsedSeconds by remember { mutableStateOf(0) }
     var isPaused by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
     var showFinishDialog by remember { mutableStateOf(false) }
+    var isDndEnabled by remember { mutableStateOf(false) }
 
     val targetSeconds = focusDuration * 60
     val remainingSeconds = (targetSeconds - elapsedSeconds).coerceAtLeast(0)
     val progressPercent = if (targetSeconds > 0) {
         (elapsedSeconds.toFloat() / targetSeconds).coerceIn(0f, 1f)
     } else 0f
+
+    // Enable DND on start
+    LaunchedEffect(Unit) {
+        isDndEnabled = enableDND(context)
+    }
+
+    // Disable DND on exit
+    DisposableEffect(Unit) {
+        onDispose {
+            disableDND(context)
+        }
+    }
 
     // Timer effect
     LaunchedEffect(isPaused) {
@@ -61,6 +78,7 @@ fun FocusModeScreen(
                 Button(
                     onClick = {
                         showCancelDialog = false
+                        disableDND(context)
                         onBackClick()
                     }
                 ) {
@@ -85,6 +103,7 @@ fun FocusModeScreen(
                 Button(
                     onClick = {
                         val actualMinutes = (elapsedSeconds / 60.0).roundToInt()
+                        disableDND(context)
                         onFinishTask(actualMinutes)
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -144,8 +163,7 @@ fun FocusModeScreen(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    PriorityChipSmall(task.priority)
-                    SeverityChipSmall(task.severity)
+                    UrgencyChipSmall(task.urgency, task.urgencyScore)
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -153,7 +171,7 @@ fun FocusModeScreen(
                 // DND Badge
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFF9800).copy(alpha = 0.1f)
+                    color = if (isDndEnabled) Color(0xFFFF9800).copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.1f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -163,13 +181,13 @@ fun FocusModeScreen(
                         Icon(
                             Icons.Default.DoNotDisturb,
                             contentDescription = null,
-                            tint = Color(0xFFFF9800),
+                            tint = if (isDndEnabled) Color(0xFFFF9800) else Color.Gray,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            stringResource(R.string.focus_dnd_active),
+                            if (isDndEnabled) stringResource(R.string.focus_dnd_active) else "DND not available",
                             fontSize = 14.sp,
-                            color = Color(0xFFFF9800),
+                            color = if (isDndEnabled) Color(0xFFFF9800) else Color.Gray,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -286,12 +304,13 @@ fun FocusModeScreen(
 }
 
 @Composable
-fun PriorityChipSmall(priority: Priority) {
-    val (emoji, color) = when (priority) {
-        Priority.Immediate -> "⚡" to Color(0xFFFF5722)
-        Priority.High -> "🔴" to Color(0xFFFF9800)
-        Priority.Medium -> "🟡" to Color(0xFFFFC107)
-        Priority.Low -> "🟢" to Color(0xFF4CAF50)
+fun UrgencyChipSmall(urgency: Urgency, score: Int) {
+    val (text, emoji, color) = when (urgency) {
+        Urgency.Critical -> Triple("Critical ($score)", "🔴", Color(0xFFD32F2F))
+        Urgency.VeryHigh -> Triple("Very High ($score)", "🟠", Color(0xFFFF5722))
+        Urgency.High -> Triple("High ($score)", "🟡", Color(0xFFFF9800))
+        Urgency.Medium -> Triple("Medium ($score)", "🟢", Color(0xFF4CAF50))
+        Urgency.Low -> Triple("Low ($score)", "🔵", Color(0xFF2196F3))
     }
 
     Surface(
@@ -305,36 +324,7 @@ fun PriorityChipSmall(priority: Priority) {
         ) {
             Text(emoji, fontSize = 14.sp)
             Text(
-                priority.name,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-        }
-    }
-}
-
-@Composable
-fun SeverityChipSmall(severity: Severity) {
-    val (emoji, color) = when (severity) {
-        Severity.Critical -> "💀" to Color(0xFFD32F2F)
-        Severity.High -> "⚠️" to Color(0xFFFF5722)
-        Severity.Medium -> "📊" to Color(0xFF2196F3)
-        Severity.Low -> "📋" to Color(0xFF9E9E9E)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.15f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(emoji, fontSize = 14.sp)
-            Text(
-                severity.name,
+                text,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = color
@@ -372,5 +362,32 @@ fun formatTime(seconds: Int): String {
         String.format("%d:%02d:%02d", hours, minutes, secs)
     } else {
         String.format("%02d:%02d", minutes, secs)
+    }
+}
+
+private fun enableDND(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (!notificationManager.isNotificationPolicyAccessGranted) {
+            // Can't enable DND without permission
+            return false
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+            return true
+        }
+    }
+    return false
+}
+
+private fun disableDND(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (notificationManager.isNotificationPolicyAccessGranted) {
+            notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        }
     }
 }

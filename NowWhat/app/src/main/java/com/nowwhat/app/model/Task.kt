@@ -3,6 +3,7 @@ package com.nowwhat.app.model
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -36,6 +37,18 @@ data class Task(
     val movedToNextDay: Int = 0,
     val calendarEventId: String? = null
 ) {
+    /**
+     * Urgency score (calculated externally)
+     */
+    @Ignore
+    var urgencyScore: Int = 0
+
+    /**
+     * Urgency level (calculated externally)
+     */
+    @Ignore
+    var urgency: Urgency = Urgency.Low
+
     /**
      * Calculate progress percentage
      */

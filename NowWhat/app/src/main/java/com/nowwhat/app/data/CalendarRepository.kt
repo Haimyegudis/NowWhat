@@ -25,7 +25,7 @@ data class CalendarEvent(
 class CalendarRepository(private val context: Context) {
 
     /**
-     * Get all calendar events for a specific date
+     * Get all calendar events for a specific date from all calendars
      */
     fun getEventsForDate(
         date: Calendar,
@@ -63,12 +63,21 @@ class CalendarRepository(private val context: Context) {
             CalendarContract.Events.CALENDAR_ID,
             CalendarContract.Events.EVENT_COLOR,
             CalendarContract.Events.EVENT_LOCATION,
-            CalendarContract.Events.DESCRIPTION
+            CalendarContract.Events.DESCRIPTION,
+            CalendarContract.Events.CALENDAR_DISPLAY_NAME
         )
 
+        // Query all events within the day range
         val selection =
-            "(${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?)"
+            "((${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?) OR " +
+                    "(${CalendarContract.Events.DTEND} >= ? AND ${CalendarContract.Events.DTEND} <= ?) OR " +
+                    "(${CalendarContract.Events.DTSTART} <= ? AND ${CalendarContract.Events.DTEND} >= ?))"
+
         val selectionArgs = arrayOf(
+            startOfDay.timeInMillis.toString(),
+            endOfDay.timeInMillis.toString(),
+            startOfDay.timeInMillis.toString(),
+            endOfDay.timeInMillis.toString(),
             startOfDay.timeInMillis.toString(),
             endOfDay.timeInMillis.toString()
         )
@@ -170,14 +179,21 @@ class CalendarRepository(private val context: Context) {
         val endCal = Calendar.getInstance().apply { timeInMillis = endTime }
 
         val startHour = startCal.get(Calendar.HOUR_OF_DAY)
+        val startMinute = startCal.get(Calendar.MINUTE)
         val endHour = endCal.get(Calendar.HOUR_OF_DAY)
+        val endMinute = endCal.get(Calendar.MINUTE)
+
+        val eventStartMinutes = startHour * 60 + startMinute
+        val eventEndMinutes = endHour * 60 + endMinute
+        val workStartMinutes = user.startWorkHour * 60
+        val workEndMinutes = user.endWorkHour * 60
 
         // Event overlaps with work hours
-        return (startHour < user.endWorkHour && endHour > user.startWorkHour)
+        return (eventStartMinutes < workEndMinutes && eventEndMinutes > workStartMinutes)
     }
 
     /**
-     * Get all available calendars
+     * Get all available calendars (Google, Outlook, Samsung, etc.)
      */
     fun getAvailableCalendars(): List<CalendarInfo> {
         if (ContextCompat.checkSelfPermission(
@@ -194,6 +210,7 @@ class CalendarRepository(private val context: Context) {
             CalendarContract.Calendars._ID,
             CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
             CalendarContract.Calendars.ACCOUNT_NAME,
+            CalendarContract.Calendars.ACCOUNT_TYPE,
             CalendarContract.Calendars.CALENDAR_COLOR,
             CalendarContract.Calendars.VISIBLE
         )
@@ -210,15 +227,19 @@ class CalendarRepository(private val context: Context) {
             val idIndex = it.getColumnIndex(CalendarContract.Calendars._ID)
             val nameIndex = it.getColumnIndex(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME)
             val accountIndex = it.getColumnIndex(CalendarContract.Calendars.ACCOUNT_NAME)
+            val accountTypeIndex = it.getColumnIndex(CalendarContract.Calendars.ACCOUNT_TYPE)
             val colorIndex = it.getColumnIndex(CalendarContract.Calendars.CALENDAR_COLOR)
             val visibleIndex = it.getColumnIndex(CalendarContract.Calendars.VISIBLE)
 
             while (it.moveToNext()) {
+                val accountType = it.getString(accountTypeIndex) ?: ""
+
                 calendars.add(
                     CalendarInfo(
                         id = it.getLong(idIndex),
                         displayName = it.getString(nameIndex) ?: "Unknown",
                         accountName = it.getString(accountIndex) ?: "",
+                        accountType = accountType,
                         color = it.getInt(colorIndex),
                         isVisible = it.getInt(visibleIndex) == 1
                     )
@@ -307,6 +328,7 @@ data class CalendarInfo(
     val id: Long,
     val displayName: String,
     val accountName: String,
+    val accountType: String,
     val color: Int,
     val isVisible: Boolean
 )

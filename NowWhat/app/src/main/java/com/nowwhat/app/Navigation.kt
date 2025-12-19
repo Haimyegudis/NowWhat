@@ -251,6 +251,13 @@ fun ProjectDetailScreenWrapper(
             onDeleteProject = {
                 viewModel.deleteProject(project)
                 navController.popBackStack()
+            },
+            onToggleProjectComplete = { shouldComplete ->
+                if (shouldComplete) {
+                    viewModel.markProjectComplete(project)
+                } else {
+                    viewModel.markProjectIncomplete(project)
+                }
             }
         )
     }
@@ -310,6 +317,7 @@ fun TaskDetailScreenWrapper(
         )
     }
 }
+
 @Composable
 fun SettingsScreenWrapper(
     viewModel: MainViewModel,

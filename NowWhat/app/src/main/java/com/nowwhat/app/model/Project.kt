@@ -15,43 +15,26 @@ data class Project(
     val deadline: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val isCompleted: Boolean = false,
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val markedComplete: Boolean = false
 ) {
-    /**
-     * Total number of tasks in this project (set externally by ViewModel)
-     */
     @Ignore
     var totalTasks: Int = 0
 
-    /**
-     * Number of completed tasks (set externally by ViewModel)
-     */
     @Ignore
     var completedTasks: Int = 0
 
-    /**
-     * Project risk status (calculated externally by ViewModel)
-     */
     @Ignore
     var risk: RiskStatus = RiskStatus.OnTrack
 
-    /**
-     * Time needed to complete all tasks in minutes (set externally by ViewModel)
-     */
     @Ignore
     var timeNeededMinutes: Int = 0
 
-    /**
-     * Calculate project progress based on completed vs total tasks
-     */
     val progress: Int
         get() = if (totalTasks > 0) {
             (completedTasks * 100 / totalTasks)
         } else 0
 
-    /**
-     * Time available until deadline in minutes (calculated)
-     */
     val timeAvailableMinutes: Int
         get() = if (deadline != null) {
             val now = System.currentTimeMillis()

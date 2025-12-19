@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nowwhat.app.R
+import com.nowwhat.app.data.LanguageManager
 import com.nowwhat.app.model.AppLanguage
 import com.nowwhat.app.model.Gender
 import com.nowwhat.app.model.UserProfile
@@ -65,7 +66,6 @@ fun SettingsScreen(
         )
     }
 
-    // Clear Data Dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
@@ -92,7 +92,6 @@ fun SettingsScreen(
         )
     }
 
-    // Show saved message
     LaunchedEffect(showSavedSnackbar) {
         if (showSavedSnackbar) {
             snackbarHostState.showSnackbar(
@@ -129,7 +128,6 @@ fun SettingsScreen(
         ) {
             item { Spacer(Modifier.height(8.dp)) }
 
-            // Profile Section
             item {
                 SettingsSection(title = stringResource(R.string.settings_profile)) {
                     OutlinedTextField(
@@ -179,10 +177,7 @@ fun SettingsScreen(
                         AppLanguage.values().forEach { language ->
                             FilterChip(
                                 selected = selectedLanguage == language,
-                                onClick = {
-                                    selectedLanguage = language
-
-                                },
+                                onClick = { selectedLanguage = language },
                                 label = { Text(getLanguageDisplayName(language)) },
                                 modifier = Modifier.weight(1f)
                             )
@@ -191,7 +186,6 @@ fun SettingsScreen(
                 }
             }
 
-            // Work Settings Section
             item {
                 SettingsSection(title = stringResource(R.string.settings_work)) {
                     Text(
@@ -244,7 +238,6 @@ fun SettingsScreen(
                 }
             }
 
-            // Focus Settings Section
             item {
                 SettingsSection(title = stringResource(R.string.settings_focus)) {
                     Text(
@@ -268,7 +261,6 @@ fun SettingsScreen(
                 }
             }
 
-            // Data Section
             item {
                 SettingsSection(title = stringResource(R.string.settings_data)) {
                     Button(
@@ -285,7 +277,6 @@ fun SettingsScreen(
                 }
             }
 
-            // Version
             item {
                 Text(
                     "${stringResource(R.string.settings_version)}: 1.0.0",
@@ -295,7 +286,6 @@ fun SettingsScreen(
                 )
             }
 
-            // Save Button
             item {
                 Button(
                     onClick = {
@@ -309,15 +299,18 @@ fun SettingsScreen(
                             workDays = selectedDays,
                             focusDndMinutes = focusDuration
                         )
-                        onSaveSettings(updatedUser)
 
-                        // Change language and restart
-                        if (selectedLanguage != user.language) {
-                            val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-                            sharedPrefs.edit().putString("language", selectedLanguage.name).apply()
-                            activity?.recreate()
-                        } else {
-                            showSavedSnackbar = true
+                        scope.launch {
+                            onSaveSettings(updatedUser)
+
+                            if (selectedLanguage != user.language) {
+                                val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+                                val languageCode = LanguageManager.getLanguageCode(selectedLanguage)
+                                sharedPrefs.edit().putString("language", languageCode).apply()
+                                activity?.recreate()
+                            } else {
+                                showSavedSnackbar = true
+                            }
                         }
                     },
                     modifier = Modifier
