@@ -6,7 +6,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nowwhat.app.R
-import com.nowwhat.app.algorithm.PriorityAlgorithm
 import com.nowwhat.app.model.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -43,12 +41,13 @@ fun ProjectDetailScreen(
     onToggleProjectComplete: (Boolean) -> Unit = {}
 ) {
     val isDarkMode = isSystemInDarkTheme()
-    val textColor = if (isDarkMode) Color.White else Color.Black
+    val textColor = if (isDarkMode) Color(0xFFEEEEEE) else Color.Black
     val cardColor = if (isDarkMode) Color(0xFF2C2C2C) else Color(0xFFF5F5F5)
 
     var selectedFilter by remember { mutableStateOf("all") }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showCompleteDialog by remember { mutableStateOf(false) }
+    var showManualCompleteDialog by remember { mutableStateOf(false) }
+    var showAutoCompleteDialog by remember { mutableStateOf(false) }
 
     val filteredTasks = tasks.filter { task ->
         when (selectedFilter) {
@@ -70,9 +69,7 @@ fun ProjectDetailScreen(
                         showDeleteDialog = false
                         onDeleteProject()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F)
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                 ) {
                     Text(stringResource(R.string.project_detail_confirm))
                 }
@@ -85,22 +82,22 @@ fun ProjectDetailScreen(
         )
     }
 
-    if (showCompleteDialog) {
+    if (showManualCompleteDialog) {
         AlertDialog(
-            onDismissRequest = { showCompleteDialog = false },
-            title = { Text("Mark Project as Complete?") },
+            onDismissRequest = { showManualCompleteDialog = false },
+            title = { Text("Change Project Status") },
             text = {
                 Text(
                     if (project.isCompleted)
-                        "Mark this project as incomplete? It will appear in active projects again."
+                        "Mark this project as active again?"
                     else
-                        "Mark this project as complete? It will be moved to completed projects."
+                        "Mark this project as complete? It will be moved to the completed list."
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        showCompleteDialog = false
+                        showManualCompleteDialog = false
                         onToggleProjectComplete(!project.isCompleted)
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -111,8 +108,32 @@ fun ProjectDetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCompleteDialog = false }) {
+                TextButton(onClick = { showManualCompleteDialog = false }) {
                     Text(stringResource(R.string.create_project_cancel))
+                }
+            }
+        )
+    }
+
+    if (showAutoCompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showAutoCompleteDialog = false },
+            title = { Text("All Tasks Completed! 🎉") },
+            text = { Text("Great job! You've finished all tasks in this project.\n\nDo you want to mark the project as 'Done' and archive it?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showAutoCompleteDialog = false
+                        onToggleProjectComplete(true)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text("Yes, Complete Project")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAutoCompleteDialog = false }) {
+                    Text("No, Keep Active")
                 }
             }
         )
@@ -128,7 +149,7 @@ fun ProjectDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showCompleteDialog = true }) {
+                    IconButton(onClick = { showManualCompleteDialog = true }) {
                         Icon(
                             if (project.isCompleted) Icons.Default.Undo else Icons.Default.CheckCircle,
                             contentDescription = if (project.isCompleted) "Mark Incomplete" else "Mark Complete",
@@ -163,7 +184,7 @@ fun ProjectDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            ProjectInfoCard(project, isDarkMode, textColor, cardColor)
+            ProjectHeaderCard(project, isDarkMode, textColor, cardColor)
 
             Spacer(Modifier.height(16.dp))
 
@@ -198,20 +219,31 @@ fun ProjectDetailScreen(
             Spacer(Modifier.height(16.dp))
 
             if (filteredTasks.isEmpty()) {
-                EmptyTasksState(onCreateTask, project.isCompleted, isDarkMode, textColor)
+                ProjectEmptyState(onCreateTask, project.isCompleted, isDarkMode, textColor)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredTasks) { task ->
-                        TaskCard(
+                    items(
+                        items = filteredTasks,
+                        key = { it.id }
+                    ) { task ->
+                        SwipeableTaskItem(
                             task = task,
-                            onClick = { onTaskClick(task) },
-                            onToggleDone = { onToggleTaskDone(task) },
                             isDarkMode = isDarkMode,
-                            textColor = textColor
+                            textColor = textColor,
+                            onClick = { onTaskClick(task) },
+                            onToggleDone = {
+                                if (!task.isDone) {
+                                    val activeTaskCount = tasks.count { !it.isDone && it.id != task.id }
+                                    if (activeTaskCount == 0 && !project.isCompleted) {
+                                        showAutoCompleteDialog = true
+                                    }
+                                }
+                                onToggleTaskDone(task)
+                            }
                         )
                     }
                 }
@@ -220,8 +252,75 @@ fun ProjectDetailScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProjectInfoCard(
+private fun SwipeableTaskItem(
+    task: Task,
+    isDarkMode: Boolean,
+    textColor: Color,
+    onClick: () -> Unit,
+    onToggleDone: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.StartToEnd) {
+                onToggleDone()
+                true // 1. מחזירים true כדי לאשר ויזואלית
+            } else {
+                false
+            }
+        }
+    )
+
+    // 2. מאפסים אחרי שהאנימציה מסתיימת כדי שלא ייתקע
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd) {
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
+                Color(0xFF4CAF50)
+            } else {
+                Color.Transparent
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 4.dp)
+                    .background(color, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Done",
+                        tint = Color.White
+                    )
+                }
+            }
+        },
+        content = {
+            DetailTaskCard(
+                task = task,
+                onClick = onClick,
+                onToggleDone = onToggleDone,
+                isDarkMode = isDarkMode,
+                textColor = textColor
+            )
+        },
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = false
+    )
+}
+
+@Composable
+private fun ProjectHeaderCard(
     project: Project,
     isDarkMode: Boolean,
     textColor: Color,
@@ -357,7 +456,7 @@ fun ProjectInfoCard(
 }
 
 @Composable
-fun TaskCard(
+private fun DetailTaskCard(
     task: Task,
     onClick: () -> Unit,
     onToggleDone: () -> Unit,
@@ -368,6 +467,12 @@ fun TaskCard(
         if (isDarkMode) Color(0xFF1B5E20) else Color(0xFFE8F5E9)
     } else {
         if (isDarkMode) Color(0xFF2C2C2C) else Color.White
+    }
+
+    val finalTextColor = if (task.isDone) {
+        if (isDarkMode) Color.White else Color.Gray
+    } else {
+        textColor
     }
 
     Card(
@@ -390,7 +495,8 @@ fun TaskCard(
                 checked = task.isDone,
                 onCheckedChange = { onToggleDone() },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = Color(0xFF4CAF50)
+                    checkedColor = Color(0xFF4CAF50),
+                    checkmarkColor = Color.White
                 )
             )
 
@@ -402,9 +508,7 @@ fun TaskCard(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     textDecoration = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (task.isDone) {
-                        if (isDarkMode) Color.Gray else Color.Gray
-                    } else textColor
+                    color = finalTextColor
                 )
 
                 Spacer(Modifier.height(4.dp))
@@ -418,7 +522,7 @@ fun TaskCard(
                     Text(
                         "${task.estimatedMinutes / 60}h ${task.estimatedMinutes % 60}m",
                         fontSize = 12.sp,
-                        color = if (isDarkMode) Color.LightGray else Color.Gray
+                        color = if (isDarkMode) Color(0xFFB0BEC5) else Color.Gray
                     )
 
                     task.deadline?.let { deadline ->
@@ -445,7 +549,7 @@ fun TaskCard(
 }
 
 @Composable
-fun UrgencyChip(urgency: Urgency) {
+private fun UrgencyChip(urgency: Urgency) {
     val (emoji, color) = when (urgency) {
         Urgency.Critical -> "🔴" to Color(0xFFD32F2F)
         Urgency.VeryHigh -> "🟠" to Color(0xFFFF5722)
@@ -467,7 +571,7 @@ fun UrgencyChip(urgency: Urgency) {
 }
 
 @Composable
-fun EmptyTasksState(
+private fun ProjectEmptyState(
     onCreateTask: () -> Unit,
     isProjectCompleted: Boolean,
     isDarkMode: Boolean,
@@ -483,7 +587,7 @@ fun EmptyTasksState(
         Icon(
             Icons.Default.TaskAlt,
             contentDescription = null,
-            tint = if (isDarkMode) Color.Gray else Color.Gray,
+            tint = if (isDarkMode) Color.LightGray else Color.Gray,
             modifier = Modifier.size(80.dp)
         )
         Spacer(Modifier.height(16.dp))
@@ -516,7 +620,7 @@ fun EmptyTasksState(
 }
 
 @Composable
-fun RiskBadge(risk: RiskStatus) {
+private fun RiskBadge(risk: RiskStatus) {
     val (text, color) = when (risk) {
         RiskStatus.Critical -> stringResource(R.string.risk_at_risk) to Color(0xFFD32F2F)
         RiskStatus.AtRisk -> stringResource(R.string.risk_warning) to Color(0xFFFF9800)

@@ -1,21 +1,27 @@
 package com.nowwhat.app.screens
 
+import android.Manifest
 import android.app.Activity
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.nowwhat.app.R
+import com.nowwhat.app.data.CalendarInfo
+import com.nowwhat.app.data.CalendarRepository
 import com.nowwhat.app.data.LanguageManager
 import com.nowwhat.app.data.UserPreferences
 import com.nowwhat.app.model.AppLanguage
@@ -32,6 +38,29 @@ fun OnboardingScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
+
+    // Calendar Repo & Permissions
+    val calendarRepository = remember { CalendarRepository(context) }
+    var availableCalendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
+    var selectedCalendar by remember { mutableStateOf<CalendarInfo?>(null) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            availableCalendars = calendarRepository.getAvailableCalendars()
+            if (availableCalendars.isNotEmpty()) selectedCalendar = availableCalendars[0]
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
+            availableCalendars = calendarRepository.getAvailableCalendars()
+            if (availableCalendars.isNotEmpty()) selectedCalendar = availableCalendars[0]
+        } else {
+            permissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+        }
+    }
 
     val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
     val initialLanguageCode = sharedPrefs.getString("language", "en") ?: "en"
@@ -78,21 +107,22 @@ fun OnboardingScreen(
             TopAppBar(
                 title = {
                     Column {
+                        // תוקן: אימוג'י חללית במקום הטקסט המשובש
                         Text(
                             "🚀 " + stringResource(R.string.onboarding_welcome),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             stringResource(R.string.onboarding_subtitle),
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                             fontSize = 14.sp
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF6200EE)
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -109,40 +139,11 @@ fun OnboardingScreen(
                     text = stringResource(R.string.onboarding_title),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
-            item {
-                Column {
-                    Text(
-                        text = stringResource(R.string.onboarding_language_label),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        AppLanguage.values().forEach { language ->
-                            FilterChip(
-                                selected = selectedLanguage == language,
-                                onClick = { selectedLanguage = language },
-                                label = {
-                                    Text(
-                                        getLanguageDisplayName(language),
-                                        fontSize = 13.sp
-                                    )
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-
+            // 1. Name
             item {
                 OutlinedTextField(
                     value = name,
@@ -154,6 +155,7 @@ fun OnboardingScreen(
                 )
             }
 
+            // 2. Role
             item {
                 OutlinedTextField(
                     value = role,
@@ -165,43 +167,75 @@ fun OnboardingScreen(
                 )
             }
 
+            // 3. Gender Dropdown
+            item {
+                AppDropdownSelector(
+                    label = stringResource(R.string.onboarding_gender_label),
+                    options = Gender.values().toList(),
+                    selectedOption = selectedGender,
+                    onOptionSelected = { selectedGender = it },
+                    displayMapper = { getGenderString(context, it) }
+                )
+            }
+
+            // 4. Language Dropdown
+            item {
+                AppDropdownSelector(
+                    label = stringResource(R.string.onboarding_language_label),
+                    options = AppLanguage.values().toList(),
+                    selectedOption = selectedLanguage,
+                    onOptionSelected = { selectedLanguage = it },
+                    displayMapper = { getLanguageDisplayName(it) }
+                )
+            }
+
+            // --- Calendar Sync Dropdown ---
             item {
                 Column {
                     Text(
-                        text = stringResource(R.string.onboarding_gender_label),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        text = "Calendar Sync",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Gender.values().forEach { gender ->
-                            FilterChip(
-                                selected = selectedGender == gender,
-                                onClick = { selectedGender = gender },
-                                label = {
-                                    Text(
-                                        getGenderString(gender),
-                                        fontSize = 13.sp
-                                    )
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
+                    Spacer(Modifier.height(4.dp))
+                    if (availableCalendars.isEmpty()) {
+                        Text(
+                            "No calendars found or permission denied.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                        Button(onClick = { permissionLauncher.launch(Manifest.permission.READ_CALENDAR) }) {
+                            Text("Grant Permission")
                         }
+                    } else {
+                        val allOption = CalendarInfo(-1L, "All Calendars", "", "", 0, true)
+                        val calendarOptions = listOf(allOption) + availableCalendars
+
+                        val currentSelection = selectedCalendar ?: allOption
+
+                        AppDropdownSelector(
+                            label = "Select Calendar",
+                            options = calendarOptions,
+                            selectedOption = currentSelection,
+                            onOptionSelected = { selectedCalendar = if (it.id == -1L) null else it },
+                            displayMapper = {
+                                if (it.id == -1L) "All Calendars"
+                                else "${it.displayName} (${it.accountName})"
+                            }
+                        )
                     }
                 }
             }
 
             item {
                 Column {
+                    // תוקן: אימוג'י שעון
                     Text(
                         text = "⏰ " + stringResource(R.string.onboarding_work_hours),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(
@@ -241,11 +275,12 @@ fun OnboardingScreen(
 
             item {
                 Column {
+                    // תוקן: אימוג'י לוח שנה
                     Text(
                         text = "📅 " + stringResource(R.string.onboarding_work_days),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(Modifier.height(8.dp))
                     WorkDaysSelector(
@@ -255,29 +290,16 @@ fun OnboardingScreen(
                 }
             }
 
+            // --- Focus Duration Dropdown ---
             item {
-                Column {
-                    Text(
-                        text = "🔇 " + stringResource(R.string.onboarding_focus_dnd),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(15, 30, 60, 90).forEach { minutes ->
-                            FilterChip(
-                                selected = focusDndDuration == minutes,
-                                onClick = { focusDndDuration = minutes },
-                                label = { Text("${minutes}m") },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
+                // תוקן: אימוג'י פוקוס/יוגה
+                AppDropdownSelector(
+                    label = "🧘 " + stringResource(R.string.onboarding_focus_dnd),
+                    options = listOf(15, 30, 45, 60, 90, 120),
+                    selectedOption = focusDndDuration,
+                    onOptionSelected = { focusDndDuration = it },
+                    displayMapper = { "$it minutes" }
+                )
             }
 
             item {
@@ -296,7 +318,8 @@ fun OnboardingScreen(
                                 focusModeDndDuration = focusDndDuration,
                                 focusDndMinutes = focusDndDuration,
                                 streak = 0,
-                                breakReminder = true
+                                breakReminder = true,
+                                calendarId = selectedCalendar?.id ?: -1L
                             )
                             scope.launch {
                                 userPreferences.saveUserProfile(user)
@@ -309,7 +332,7 @@ fun OnboardingScreen(
                         .height(56.dp),
                     enabled = name.isNotBlank() && role.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6200EE)
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text(
@@ -324,24 +347,6 @@ fun OnboardingScreen(
                 Spacer(Modifier.height(40.dp))
             }
         }
-    }
-}
-
-@Composable
-fun getGenderString(gender: Gender): String {
-    return when (gender) {
-        Gender.Male -> stringResource(R.string.gender_male)
-        Gender.Female -> stringResource(R.string.gender_female)
-        Gender.NotSpecified -> stringResource(R.string.gender_not_specified)
-    }
-}
-
-@Composable
-fun getLanguageDisplayName(language: AppLanguage): String {
-    return when (language) {
-        AppLanguage.English -> "English"
-        AppLanguage.Hebrew -> "עברית"
-        AppLanguage.Russian -> "Русский"
     }
 }
 
@@ -388,8 +393,8 @@ fun WorkDaysSelector(
                 },
                 modifier = Modifier.weight(1f),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF6200EE),
-                    selectedLabelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }

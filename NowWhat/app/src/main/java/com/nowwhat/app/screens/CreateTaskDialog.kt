@@ -1,6 +1,13 @@
 package com.nowwhat.app.screens
 
+import android.Manifest
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.nowwhat.app.R
 import com.nowwhat.app.model.*
 import java.text.SimpleDateFormat
@@ -19,6 +27,7 @@ import java.util.*
 @Composable
 fun CreateTaskDialog(
     projects: List<Project>,
+    preSelectedProject: Project? = null,
     onDismiss: () -> Unit,
     onCreateTask: (Task) -> Unit
 ) {
@@ -26,30 +35,80 @@ fun CreateTaskDialog(
 
     var taskName by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
-    var selectedProject by remember { mutableStateOf<Project?>(null) }
+
+    // Initialize selected project with preSelectedProject or the first one if list has only one
+    var selectedProject by remember {
+        mutableStateOf<Project?>(
+            preSelectedProject ?: if (projects.size == 1) projects.first() else null
+        )
+    }
+
     var selectedPriority by remember { mutableStateOf(Priority.Medium) }
     var selectedSeverity by remember { mutableStateOf(Severity.Medium) }
     var deadline by remember { mutableStateOf<Long?>(null) }
+    var reminderTime by remember { mutableStateOf<Long?>(null) }
     var estimatedHours by remember { mutableStateOf("2.0") }
     var showProjectDropdown by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    val calendar = Calendar.getInstance()
+    // Deadline Date Picker
+    val deadlineCalendar = Calendar.getInstance()
     if (deadline != null) {
-        calendar.timeInMillis = deadline!!
+        deadlineCalendar.timeInMillis = deadline!!
     }
-
-    val datePickerDialog = DatePickerDialog(
+    val deadlineDatePicker = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
             val selectedCalendar = Calendar.getInstance()
             selectedCalendar.set(year, month, dayOfMonth, 23, 59, 59)
             deadline = selectedCalendar.timeInMillis
         },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
+        deadlineCalendar.get(Calendar.YEAR),
+        deadlineCalendar.get(Calendar.MONTH),
+        deadlineCalendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    // Reminder Logic
+    val reminderCalendar = Calendar.getInstance()
+    if (reminderTime != null) {
+        reminderCalendar.timeInMillis = reminderTime!!
+    }
+
+    val reminderTimePicker = TimePickerDialog(
+        context,
+        { _, hourOfDay, minute ->
+            reminderCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+            reminderCalendar.set(Calendar.MINUTE, minute)
+            reminderCalendar.set(Calendar.SECOND, 0)
+            reminderTime = reminderCalendar.timeInMillis
+        },
+        reminderCalendar.get(Calendar.HOUR_OF_DAY),
+        reminderCalendar.get(Calendar.MINUTE),
+        true
+    )
+
+    val reminderDatePicker = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            reminderCalendar.set(year, month, dayOfMonth)
+            reminderTimePicker.show()
+        },
+        reminderCalendar.get(Calendar.YEAR),
+        reminderCalendar.get(Calendar.MONTH),
+        reminderCalendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    // Permission Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                reminderDatePicker.show()
+            } else {
+                Toast.makeText(context, "Notification permission required for reminders", Toast.LENGTH_SHORT).show()
+            }
+        }
     )
 
     AlertDialog(
@@ -61,7 +120,7 @@ fun CreateTaskDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 500.dp)
+                    .heightIn(max = 600.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -92,7 +151,7 @@ fun CreateTaskDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProjectDropdown) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable), // Fixed deprecation
                         isError = showError && selectedProject == null
                     )
                     ExposedDropdownMenu(
@@ -167,16 +226,45 @@ fun CreateTaskDialog(
                     singleLine = true
                 )
 
+                // Deadline Button
                 OutlinedButton(
-                    onClick = { datePickerDialog.show() },
+                    onClick = { deadlineDatePicker.show() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         if (deadline != null) {
-                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                            "📅 Deadline: " + SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                                 .format(Date(deadline!!))
                         } else {
                             stringResource(R.string.create_task_deadline)
+                        }
+                    )
+                }
+
+                // Reminder Button
+                OutlinedButton(
+                    onClick = {
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                                reminderDatePicker.show()
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        } else {
+                            reminderDatePicker.show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Text(
+                        if (reminderTime != null) {
+                            "🔔 Reminder: " + SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                                .format(Date(reminderTime!!))
+                        } else {
+                            "🔔 Set Reminder"
                         }
                     )
                 }
@@ -222,7 +310,8 @@ fun CreateTaskDialog(
                                 severity = selectedSeverity,
                                 estimatedMinutes = (hours * 60).toInt(),
                                 deadline = deadline,
-                                createdAt = System.currentTimeMillis()
+                                createdAt = System.currentTimeMillis(),
+                                reminderTime = reminderTime
                             )
                             onCreateTask(newTask)
                             onDismiss()

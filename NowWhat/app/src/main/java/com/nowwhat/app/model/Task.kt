@@ -1,27 +1,19 @@
 package com.nowwhat.app.model
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import java.util.Calendar
 
 @Entity(
     tableName = "tasks",
-    foreignKeys = [
-        ForeignKey(
-            entity = Project::class,
-            parentColumns = ["id"],
-            childColumns = ["projectId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [Index("projectId")]
 )
 data class Task(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val projectId: Int,
+    val projectId: Int? = null,
     val title: String,
     val description: String = "",
     val priority: Priority = Priority.Medium,
@@ -30,34 +22,32 @@ data class Task(
     val actualMinutes: Int = 0,
     val deadline: Long? = null,
     val isDone: Boolean = false,
+    val isArchived: Boolean = false, // Added field
     val completedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val hasBlocker: Boolean = false,
     val blockerDescription: String = "",
     val movedToNextDay: Int = 0,
-    val calendarEventId: String? = null
+    val calendarEventId: String? = null,
+    val waitingFor: String? = null,
+    val reminderTime: Long? = null,
+    val scheduledDate: Long? = null,
+    val splitFromTaskId: Int? = null,
+    val splitPartIndex: Int = 0,
+    val originalEstimatedMinutes: Int? = null
 ) {
-    /**
-     * Urgency score (calculated externally)
-     */
     @Ignore
     var urgencyScore: Int = 0
 
-    /**
-     * Urgency level (calculated externally)
-     */
     @Ignore
     var urgency: Urgency = Urgency.Low
 
-    /**
-     * Alias for hasBlocker
-     */
-    val isBlocked: Boolean
-        get() = hasBlocker
+    @Ignore
+    var urgencyReason: String = ""
 
-    /**
-     * Calculate progress percentage
-     */
+    val isBlocked: Boolean
+        get() = hasBlocker || !waitingFor.isNullOrBlank()
+
     val progress: Int
         get() = if (isDone) {
             100
@@ -67,39 +57,27 @@ data class Task(
             0
         }
 
-    /**
-     * Calculate remaining minutes
-     */
     val remainingMinutes: Int
         get() = (estimatedMinutes - actualMinutes).coerceAtLeast(0)
 
-    /**
-     * Check if task is overdue
-     */
     val isOverdue: Boolean
         get() = deadline != null && deadline!! < System.currentTimeMillis() && !isDone
 
-    /**
-     * Check if task is due today
-     */
     val isDueToday: Boolean
         get() {
             if (deadline == null) return false
-            val today = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, 0)
-                set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0)
-                set(java.util.Calendar.MILLISECOND, 0)
+            val today = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             }
-            val tomorrow = today.clone() as java.util.Calendar
-            tomorrow.add(java.util.Calendar.DAY_OF_YEAR, 1)
+            val tomorrow = today.clone() as Calendar
+            tomorrow.add(Calendar.DAY_OF_YEAR, 1)
 
             return deadline!! >= today.timeInMillis && deadline!! < tomorrow.timeInMillis
         }
 
-    /**
-     * Get days until deadline (can be negative if overdue)
-     */
     val daysUntilDeadline: Int?
         get() {
             if (deadline == null) return null

@@ -1,3 +1,4 @@
+// NowWhat/app/src/main/java/com/nowwhat/app/screens/StatsScreen.kt
 package com.nowwhat.app.screens
 
 import androidx.compose.foundation.layout.*
@@ -9,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,9 +46,9 @@ fun StatsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF6200EE),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -62,7 +62,6 @@ fun StatsScreen(
         ) {
             item { Spacer(Modifier.height(8.dp)) }
 
-            // Streak Cards
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -72,102 +71,98 @@ fun StatsScreen(
                         title = stringResource(R.string.stats_current_streak),
                         days = user.currentStreak,
                         icon = Icons.Default.LocalFireDepartment,
-                        color = Color(0xFFFF5722),
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.weight(1f)
                     )
                     StreakCard(
                         title = stringResource(R.string.stats_longest_streak),
                         days = user.longestStreak,
                         icon = Icons.Default.EmojiEvents,
-                        color = Color(0xFFFFC107),
+                        color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            // Tasks Completed Section
             item {
                 StatsSection(title = stringResource(R.string.stats_tasks_completed)) {
                     StatItem(
                         label = stringResource(R.string.stats_today),
                         value = tasksCompletedToday.toString(),
                         icon = Icons.Default.Today,
-                        color = Color(0xFF2196F3)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     StatItem(
                         label = stringResource(R.string.stats_this_week),
                         value = tasksCompletedThisWeek.toString(),
                         icon = Icons.Default.DateRange,
-                        color = Color(0xFF4CAF50)
+                        color = MaterialTheme.colorScheme.secondary
                     )
                     StatItem(
                         label = stringResource(R.string.stats_this_month),
                         value = tasksCompletedThisMonth.toString(),
                         icon = Icons.Default.CalendarMonth,
-                        color = Color(0xFF9C27B0)
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
 
-            // Time Worked Section
             item {
                 StatsSection(title = stringResource(R.string.stats_time_worked)) {
                     StatItem(
                         label = stringResource(R.string.stats_today),
                         value = formatMinutes(timeWorkedToday),
                         icon = Icons.Default.AccessTime,
-                        color = Color(0xFF2196F3)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     StatItem(
                         label = stringResource(R.string.stats_this_week),
                         value = formatMinutes(timeWorkedThisWeek),
                         icon = Icons.Default.AccessTime,
-                        color = Color(0xFF4CAF50)
+                        color = MaterialTheme.colorScheme.secondary
                     )
                     StatItem(
                         label = stringResource(R.string.stats_this_month),
                         value = formatMinutes(timeWorkedThisMonth),
                         icon = Icons.Default.AccessTime,
-                        color = Color(0xFF9C27B0)
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
 
-            // Projects Overview
             item {
                 val activeProjects = projects.count { !it.isCompleted }
                 val completedProjects = projects.count { it.isCompleted }
 
-                StatsSection(title = "Projects") {
+                StatsSection(title = stringResource(R.string.projects_title)) {
                     StatItem(
                         label = stringResource(R.string.stats_total_projects),
                         value = projects.size.toString(),
                         icon = Icons.Default.Folder,
-                        color = Color(0xFF6200EE)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     StatItem(
                         label = stringResource(R.string.stats_active_projects),
                         value = activeProjects.toString(),
                         icon = Icons.Default.FolderOpen,
-                        color = Color(0xFF2196F3)
+                        color = MaterialTheme.colorScheme.secondary
                     )
                     StatItem(
                         label = stringResource(R.string.stats_completed_projects),
                         value = completedProjects.toString(),
                         icon = Icons.Default.CheckCircle,
-                        color = Color(0xFF4CAF50)
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
 
-            // Estimation Accuracy
             if (avgAccuracy > 0) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFF5F5F5)
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     ) {
                         Column(
@@ -179,7 +174,8 @@ fun StatsScreen(
                             Text(
                                 stringResource(R.string.stats_avg_accuracy),
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(16.dp))
                             Text(
@@ -187,9 +183,9 @@ fun StatsScreen(
                                 fontSize = 48.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = when {
-                                    avgAccuracy >= 0.9f -> Color(0xFF4CAF50)
-                                    avgAccuracy >= 0.7f -> Color(0xFFFFC107)
-                                    else -> Color(0xFFFF5722)
+                                    avgAccuracy >= 0.9f -> MaterialTheme.colorScheme.primary
+                                    avgAccuracy >= 0.7f -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.error
                                 }
                             )
                         }
@@ -207,7 +203,7 @@ fun StreakCard(
     title: String,
     days: Int,
     icon: ImageVector,
-    color: Color,
+    color: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -239,13 +235,13 @@ fun StreakCard(
             Text(
                 stringResource(R.string.stats_days),
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 title,
                 fontSize = 12.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -261,7 +257,7 @@ fun StatsSection(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -274,7 +270,7 @@ fun StatsSection(
                 title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             content()
         }
@@ -286,7 +282,7 @@ fun StatItem(
     label: String,
     value: String,
     icon: ImageVector,
-    color: Color
+    color: androidx.compose.ui.graphics.Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -306,7 +302,7 @@ fun StatItem(
             Text(
                 label,
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text(

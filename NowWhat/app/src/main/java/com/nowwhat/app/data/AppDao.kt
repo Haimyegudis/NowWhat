@@ -41,6 +41,10 @@ interface AppDao {
     @Query("SELECT * FROM tasks WHERE projectId = :projectId ORDER BY deadline ASC")
     fun getTasksByProject(projectId: Int): Flow<List<Task>>
 
+    // NEW FUNCTION NEEDED FOR VIEWMODEL
+    @Query("SELECT * FROM tasks WHERE projectId = :projectId")
+    suspend fun getTasksForProjectSync(projectId: Int): List<Task>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: Task): Long
 
@@ -65,14 +69,14 @@ interface AppDao {
     @Query("SELECT * FROM tasks WHERE deadline >= :startOfDay AND deadline < :endOfDay AND isDone = 0")
     fun getTasksDueToday(startOfDay: Long, endOfDay: Long): Flow<List<Task>>
 
-    // ========== SubTasks ==========
-    @Query("SELECT * FROM subtasks ORDER BY createdAt DESC")
+    // ========== SubTasks (Table name updated to sub_tasks) ==========
+    @Query("SELECT * FROM sub_tasks ORDER BY createdAt DESC")
     fun getAllSubTasks(): Flow<List<SubTask>>
 
-    @Query("SELECT * FROM subtasks WHERE id = :subTaskId")
+    @Query("SELECT * FROM sub_tasks WHERE id = :subTaskId")
     suspend fun getSubTaskById(subTaskId: Int): SubTask?
 
-    @Query("SELECT * FROM subtasks WHERE taskId = :taskId ORDER BY createdAt ASC")
+    @Query("SELECT * FROM sub_tasks WHERE taskId = :taskId ORDER BY createdAt ASC")
     fun getSubTasksByTask(taskId: Int): Flow<List<SubTask>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -84,10 +88,10 @@ interface AppDao {
     @Delete
     suspend fun deleteSubTask(subTask: SubTask)
 
-    @Query("SELECT * FROM subtasks WHERE isDone = 0 AND taskId = :taskId")
+    @Query("SELECT * FROM sub_tasks WHERE isDone = 0 AND taskId = :taskId")
     fun getIncompleteSubTasksByTask(taskId: Int): Flow<List<SubTask>>
 
-    @Query("SELECT * FROM subtasks WHERE isDone = 1 AND taskId = :taskId")
+    @Query("SELECT * FROM sub_tasks WHERE isDone = 1 AND taskId = :taskId")
     fun getCompletedSubTasksByTask(taskId: Int): Flow<List<SubTask>>
 
     // ========== Aggregations ==========
@@ -97,23 +101,23 @@ interface AppDao {
     @Query("SELECT COUNT(*) FROM tasks WHERE projectId = :projectId AND isDone = 1")
     suspend fun getCompletedTaskCountForProject(projectId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM subtasks WHERE taskId = :taskId")
+    @Query("SELECT COUNT(*) FROM sub_tasks WHERE taskId = :taskId")
     suspend fun getSubTaskCountForTask(taskId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM subtasks WHERE taskId = :taskId AND isDone = 1")
+    @Query("SELECT COUNT(*) FROM sub_tasks WHERE taskId = :taskId AND isDone = 1")
     suspend fun getCompletedSubTaskCountForTask(taskId: Int): Int
 
     // ========== Batch Operations ==========
     @Query("DELETE FROM tasks WHERE projectId = :projectId")
     suspend fun deleteAllTasksForProject(projectId: Int)
 
-    @Query("DELETE FROM subtasks WHERE taskId = :taskId")
+    @Query("DELETE FROM sub_tasks WHERE taskId = :taskId")
     suspend fun deleteAllSubTasksForTask(taskId: Int)
 
     @Query("UPDATE tasks SET isDone = 1, completedAt = :timestamp WHERE projectId = :projectId")
     suspend fun markAllTasksAsComplete(projectId: Int, timestamp: Long)
 
-    @Query("UPDATE subtasks SET isDone = 1, completedAt = :timestamp WHERE taskId = :taskId")
+    @Query("UPDATE sub_tasks SET isDone = 1, completedAt = :timestamp WHERE taskId = :taskId")
     suspend fun markAllSubTasksAsComplete(taskId: Int, timestamp: Long)
 
     // ========== Search ==========

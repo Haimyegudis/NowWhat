@@ -10,8 +10,11 @@ import com.nowwhat.app.data.CalendarEvent
 import com.nowwhat.app.data.CalendarRepository
 import com.nowwhat.app.data.UserPreferences
 import com.nowwhat.app.model.*
+import com.nowwhat.app.utils.NotificationScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -19,10 +22,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = app.database.dao()
     private val calendarRepository = CalendarRepository(application)
     val userPreferences = UserPreferences(application)
+    private val notificationScheduler = NotificationScheduler(application)
+
+    private val taskUseCases = TaskUseCases()
 
     companion object {
         private const val TAG = "MainViewModel"
     }
+
+    // Events for UI
+    private val _projectCompletionEvent = MutableSharedFlow<Project>()
+    val projectCompletionEvent = _projectCompletionEvent.asSharedFlow()
+
+    private val _toastMessage = MutableSharedFlow<String>()
+    val toastMessage = _toastMessage.asSharedFlow()
+
+    // Loading state
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     val user: StateFlow<UserProfile?> = userPreferences.userProfileFlow
         .catch { e ->
@@ -42,11 +59,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         availableMinutes
     ) { tasks, availableMins ->
         try {
-            tasks.map { task ->
-                task.apply {
-                    urgencyScore = PriorityAlgorithm.calculateUrgency(this, availableMins)
-                    urgency = PriorityAlgorithm.getUrgencyLevel(urgencyScore)
-                }
+            withContext(Dispatchers.Default) {
+                taskUseCases.getTasksWithUrgency(tasks, availableMins)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating urgency scores", e)
@@ -59,84 +73,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // Store project IDs that have been auto-completed to prevent loops
+    val subTasks: StateFlow<List<SubTask>> = dao.getAllSubTasks()
+        .catch { e ->
+            Log.e(TAG, "Error in subTasks flow", e)
+            emit(emptyList())
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     private val autoCompletedProjects = mutableSetOf<Int>()
 
     val projects: StateFlow<List<Project>> = combine(
         dao.getAllProjects(),
         tasks,
+        subTasks,
         user
-    ) { projects, allTasks, currentUser ->
-        try {
-            if (currentUser == null) {
-                projects
-            } else {
+    ) { projects, allTasks, allSubTasks, currentUser ->
+        withContext(Dispatchers.Default) {
+            try {
                 projects.map { project ->
                     val projectTasks = allTasks.filter { it.projectId == project.id }
-                    val allTasksDone = projectTasks.isNotEmpty() && projectTasks.all { it.isDone }
 
-                    val updatedProject = project.apply {
-                        totalTasks = projectTasks.size
-                        completedTasks = projectTasks.count { it.isDone }
-                        risk = PriorityAlgorithm.calculateProjectRisk(
-                            project = this,
-                            tasks = projectTasks,
-                            user = currentUser
-                        )
-                        timeNeededMinutes = projectTasks
-                            .filter { !it.isDone }
-                            .sumOf { it.estimatedMinutes }
-                    }
+                    val totalTasksCount = projectTasks.size
+                    val completedTasksCount = projectTasks.count { it.isDone }
+                    val timeNeeded = projectTasks.filter { !it.isDone }.sumOf { it.estimatedMinutes }
 
-                    // Auto-complete project if all tasks are done and not manually marked
-                    // Use a flag to prevent doing this multiple times
-                    if (allTasksDone &&
-                        !project.isCompleted &&
-                        !project.markedComplete &&
-                        project.totalTasks > 0 &&
-                        !autoCompletedProjects.contains(project.id)) {
-
-                        autoCompletedProjects.add(project.id)
-
-                        // Launch in a separate coroutine to avoid blocking the flow
-                        viewModelScope.launch {
-                            try {
-                                Log.d(TAG, "Auto-completing project: ${project.name}")
-                                dao.updateProject(
-                                    project.copy(
-                                        isCompleted = true,
-                                        completedAt = System.currentTimeMillis()
-                                    )
-                                )
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error auto-completing project", e)
-                                autoCompletedProjects.remove(project.id)
-                            }
+                    val riskCalc = if (currentUser != null) {
+                        try {
+                            PriorityAlgorithm.calculateProjectRisk(
+                                project = project,
+                                tasks = projectTasks,
+                                subTasks = allSubTasks,
+                                user = currentUser
+                            )
+                        } catch (e: Exception) {
+                            RiskStatus.OnTrack
                         }
+                    } else {
+                        project.risk
                     }
 
-                    // Remove from set if project is no longer done
-                    if (!allTasksDone && autoCompletedProjects.contains(project.id)) {
-                        autoCompletedProjects.remove(project.id)
-                    }
-
-                    updatedProject
+                    project.copy(
+                        totalTasks = totalTasksCount,
+                        completedTasks = completedTasksCount,
+                        risk = riskCalc,
+                        timeNeededMinutes = timeNeeded
+                    )
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in projects flow logic", e)
+                projects
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in projects flow", e)
-            projects
         }
     }
         .catch { e ->
-            Log.e(TAG, "Error in projects flow", e)
-            emit(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val subTasks: StateFlow<List<SubTask>> = dao.getAllSubTasks()
-        .catch { e ->
-            Log.e(TAG, "Error in subTasks flow", e)
+            Log.e(TAG, "Error in projects flow collection", e)
             emit(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -154,7 +144,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Auto-refresh calendar every 5 minutes
         viewModelScope.launch {
             try {
                 while (true) {
@@ -171,35 +160,58 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshCalendarEvents() {
         viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    user.value?.let { userProfile ->
+                        val today = Calendar.getInstance()
+                        val events = calendarRepository.getEventsForDate(
+                            date = today,
+                            user = userProfile
+                        )
+                        _calendarEvents.value = events
+
+                        val availableMins = calendarRepository.calculateAvailableMinutesToday(
+                            user = userProfile
+                        )
+                        _availableMinutes.value = availableMins
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error refreshing calendar", e)
+                    _availableMinutes.value = user.value?.dailyWorkMinutes ?: 480
+                }
+            }
+        }
+    }
+
+    suspend fun getCapacityForPeriod(startMillis: Long, endMillis: Long): Int {
+        return withContext(Dispatchers.IO) {
             try {
-                user.value?.let { userProfile ->
-                    val today = Calendar.getInstance()
-                    val events = calendarRepository.getEventsForDate(
-                        date = today,
-                        user = userProfile
-                    )
-                    _calendarEvents.value = events
-
-                    val availableMins = calendarRepository.calculateAvailableMinutesToday(
-                        user = userProfile
-                    )
-                    _availableMinutes.value = availableMins
-
-                    Log.d(TAG, "Calendar refreshed: ${events.size} events, $availableMins mins available")
+                val currentUser = user.value
+                if (currentUser != null) {
+                    calendarRepository.calculateAvailableMinutesForRange(startMillis, endMillis, currentUser)
+                } else {
+                    0
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error refreshing calendar", e)
-                // Set default work minutes on error
-                _availableMinutes.value = user.value?.dailyWorkMinutes ?: 480
+                Log.e(TAG, "Error calculating period capacity", e)
+                0
             }
         }
     }
 
     fun createProject(project: Project) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                dao.insertProject(project)
-                Log.d(TAG, "Project created: ${project.name}")
+                val id = dao.insertProject(project)
+                if (project.deadline != null) {
+                    notificationScheduler.scheduleDeadlineReminder(
+                        id.toInt(),
+                        "Project Deadline: ${project.name}",
+                        project.deadline,
+                        isProject = true
+                    )
+                }
+                Log.d(TAG, "Project created: ${project.name}, id=$id")
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating project", e)
             }
@@ -207,10 +219,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateProject(project: Project) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.updateProject(project)
-                Log.d(TAG, "Project updated: ${project.name}")
+                if (project.deadline != null) {
+                    if (project.isCompleted || project.isArchived) {
+                        notificationScheduler.cancelDeadlineReminder(project.id)
+                    } else {
+                        notificationScheduler.scheduleDeadlineReminder(
+                            project.id,
+                            "Project Deadline: ${project.name}",
+                            project.deadline,
+                            isProject = true
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating project", e)
             }
@@ -218,29 +241,67 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteProject(project: Project) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.deleteProject(project)
                 autoCompletedProjects.remove(project.id)
-                Log.d(TAG, "Project deleted: ${project.name}")
+                notificationScheduler.cancelDeadlineReminder(project.id)
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting project", e)
             }
         }
     }
 
+    fun archiveProject(project: Project) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                dao.updateProject(project.copy(isArchived = true))
+                notificationScheduler.cancelDeadlineReminder(project.id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error archiving project", e)
+            }
+        }
+    }
+
+    fun restoreProject(project: Project) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                dao.updateProject(
+                    project.copy(
+                        isCompleted = false,
+                        isArchived = false,
+                        markedComplete = false,
+                        completedAt = null
+                    )
+                )
+                autoCompletedProjects.remove(project.id)
+                if (project.deadline != null) {
+                    notificationScheduler.scheduleDeadlineReminder(
+                        project.id,
+                        "Project Deadline: ${project.name}",
+                        project.deadline,
+                        isProject = true
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error restoring project", e)
+            }
+        }
+    }
+
     fun markProjectComplete(project: Project) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.updateProject(
                     project.copy(
                         isCompleted = true,
                         markedComplete = true,
+                        isArchived = false,
                         completedAt = System.currentTimeMillis()
                     )
                 )
                 autoCompletedProjects.remove(project.id)
-                Log.d(TAG, "Project marked complete: ${project.name}")
+                notificationScheduler.cancelDeadlineReminder(project.id)
             } catch (e: Exception) {
                 Log.e(TAG, "Error marking project complete", e)
             }
@@ -248,17 +309,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun markProjectIncomplete(project: Project) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.updateProject(
                     project.copy(
                         isCompleted = false,
                         markedComplete = false,
+                        isArchived = false,
                         completedAt = null
                     )
                 )
                 autoCompletedProjects.remove(project.id)
-                Log.d(TAG, "Project marked incomplete: ${project.name}")
+                if (project.deadline != null) {
+                    notificationScheduler.scheduleDeadlineReminder(
+                        project.id,
+                        "Project Deadline: ${project.name}",
+                        project.deadline,
+                        isProject = true
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error marking project incomplete", e)
             }
@@ -266,10 +335,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createTask(task: Task) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                dao.insertTask(task)
-                Log.d(TAG, "Task created: ${task.title}")
+                val id = dao.insertTask(task)
+                task.reminderTime?.let {
+                    notificationScheduler.scheduleReminder(id.toInt(), "Task Due: ${task.title}", it)
+                }
+                if (task.deadline != null && !task.isDone) {
+                    notificationScheduler.scheduleDeadlineReminder(
+                        id.toInt(),
+                        "Task Deadline: ${task.title}",
+                        task.deadline,
+                        isProject = false
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating task", e)
             }
@@ -277,10 +356,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateTask(task: Task) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.updateTask(task)
-                Log.d(TAG, "Task updated: ${task.title}")
+
+                if (task.deadline != null) {
+                    if (task.isDone || task.isArchived) {
+                        notificationScheduler.cancelDeadlineReminder(task.id)
+                    } else {
+                        notificationScheduler.scheduleDeadlineReminder(
+                            task.id,
+                            "Task Deadline: ${task.title}",
+                            task.deadline,
+                            isProject = false
+                        )
+                    }
+                }
+
+                if (task.reminderTime != null) {
+                    if (task.isDone || task.isArchived) {
+                        notificationScheduler.cancelReminder(task.id)
+                    } else {
+                        notificationScheduler.scheduleReminder(
+                            task.id,
+                            "Task Reminder: ${task.title}",
+                            task.reminderTime
+                        )
+                    }
+                } else {
+                    notificationScheduler.cancelReminder(task.id)
+                }
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating task", e)
             }
@@ -288,38 +394,114 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteTask(task: Task) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.deleteTask(task)
-                Log.d(TAG, "Task deleted: ${task.title}")
+                notificationScheduler.cancelReminder(task.id)
+                notificationScheduler.cancelDeadlineReminder(task.id)
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting task", e)
             }
         }
     }
 
-    fun toggleTaskDone(task: Task) {
-        viewModelScope.launch {
+    fun archiveTask(task: Task) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                dao.updateTask(task.copy(isArchived = true))
+                notificationScheduler.cancelReminder(task.id)
+                notificationScheduler.cancelDeadlineReminder(task.id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error archiving task", e)
+            }
+        }
+    }
+
+    fun restoreTask(task: Task) {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val updated = task.copy(
-                    isDone = !task.isDone,
-                    completedAt = if (!task.isDone) System.currentTimeMillis() else null
+                    isArchived = false,
+                    isDone = false,
+                    completedAt = null
                 )
                 dao.updateTask(updated)
 
-                if (updated.isDone) {
-                    updateStreak()
+                if (updated.deadline != null && updated.deadline > System.currentTimeMillis()) {
+                    notificationScheduler.scheduleDeadlineReminder(
+                        updated.id,
+                        "Task Deadline: ${updated.title}",
+                        updated.deadline,
+                        isProject = false
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error restoring task", e)
+            }
+        }
+    }
+
+    fun toggleTaskDone(task: Task) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!task.isDone && !task.waitingFor.isNullOrBlank()) {
+                    _toastMessage.emit("Cannot complete task while waiting for: ${task.waitingFor}")
+                    return@launch
                 }
 
-                Log.d(TAG, "Task toggled: ${task.title}, done=${updated.isDone}")
+                val newIsDone = !task.isDone
+                val updated = task.copy(
+                    isDone = newIsDone,
+                    completedAt = if (newIsDone) System.currentTimeMillis() else null,
+                    isArchived = false
+                )
+                dao.updateTask(updated)
+
+                if (newIsDone) {
+                    notificationScheduler.cancelReminder(task.id)
+                    notificationScheduler.cancelDeadlineReminder(task.id)
+                } else {
+                    task.reminderTime?.let {
+                        if (it > System.currentTimeMillis()) {
+                            notificationScheduler.scheduleReminder(task.id, "Task Due: ${task.title}", it)
+                        }
+                    }
+                    task.deadline?.let {
+                        if (it > System.currentTimeMillis()) {
+                            notificationScheduler.scheduleDeadlineReminder(task.id, "Task Deadline: ${task.title}", it, false)
+                        }
+                    }
+                }
+
+                if (updated.isDone && updated.projectId != null) {
+                    updateStreak()
+                    checkIfProjectIsFinished(updated.projectId)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error toggling task", e)
             }
         }
     }
 
+    private suspend fun checkIfProjectIsFinished(projectId: Int) {
+        try {
+            val projectTasks = dao.getTasksForProjectSync(projectId)
+            val allDone = projectTasks.isNotEmpty() && projectTasks.all { it.isDone }
+
+            if (allDone) {
+                val project = dao.getProjectById(projectId)
+                if (project != null && !project.isCompleted && !autoCompletedProjects.contains(projectId)) {
+                    autoCompletedProjects.add(projectId)
+                    _projectCompletionEvent.emit(project)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking project finish", e)
+        }
+    }
+
     fun finishTask(task: Task, actualMinutes: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val updated = task.copy(
                     isDone = true,
@@ -327,8 +509,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     completedAt = System.currentTimeMillis()
                 )
                 dao.updateTask(updated)
+
+                notificationScheduler.cancelReminder(task.id)
+                notificationScheduler.cancelDeadlineReminder(task.id)
+
                 updateStreak()
-                Log.d(TAG, "Task finished: ${task.title}, actual minutes: $actualMinutes")
+                if (task.projectId != null) {
+                    checkIfProjectIsFinished(task.projectId)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error finishing task", e)
             }
@@ -336,7 +524,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun moveUnfinishedTasksToTomorrow() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val today = Calendar.getInstance().apply {
                     set(Calendar.HOUR_OF_DAY, 0)
@@ -345,14 +533,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     set(Calendar.MILLISECOND, 0)
                 }.timeInMillis
 
-                tasks.value
-                    .filter { !it.isDone && it.deadline != null && it.deadline!! < today }
+                val allTasks = dao.getAllTasks().first()
+
+                allTasks.filter { !it.isDone && it.deadline != null && it.deadline!! < today }
                     .forEach { task ->
                         val updated = task.copy(movedToNextDay = task.movedToNextDay + 1)
                         dao.updateTask(updated)
                     }
-
-                Log.d(TAG, "Moved unfinished tasks to tomorrow")
             } catch (e: Exception) {
                 Log.e(TAG, "Error moving tasks to tomorrow", e)
             }
@@ -360,10 +547,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createSubTask(subTask: SubTask) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.insertSubTask(subTask)
-                Log.d(TAG, "SubTask created: ${subTask.title}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating subtask", e)
             }
@@ -371,10 +557,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateSubTask(subTask: SubTask) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.updateSubTask(subTask)
-                Log.d(TAG, "SubTask updated: ${subTask.title}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating subtask", e)
             }
@@ -382,10 +567,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteSubTask(subTask: SubTask) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.deleteSubTask(subTask)
-                Log.d(TAG, "SubTask deleted: ${subTask.title}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting subtask", e)
             }
@@ -393,14 +577,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleSubTaskDone(subTask: SubTask) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val updated = subTask.copy(
                     isDone = !subTask.isDone,
                     completedAt = if (!subTask.isDone) System.currentTimeMillis() else null
                 )
                 dao.updateSubTask(updated)
-                Log.d(TAG, "SubTask toggled: ${subTask.title}, done=${updated.isDone}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error toggling subtask", e)
             }
@@ -408,7 +591,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun updateStreak() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 user.value?.let { currentUser ->
                     val today = Calendar.getInstance().apply {
@@ -418,13 +601,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         set(Calendar.MILLISECOND, 0)
                     }.timeInMillis
 
-                    val todayTasks = tasks.value.filter {
-                        it.completedAt != null && it.completedAt!! >= today
-                    }
+                    val todayTasks = dao.getTasksCompletedInRange(today, System.currentTimeMillis())
 
-                    if (todayTasks.isNotEmpty()) {
+                    if (todayTasks > 0) {
                         userPreferences.updateStreak(currentUser.currentStreak + 1)
-                        Log.d(TAG, "Streak updated: ${currentUser.currentStreak + 1}")
                     }
                 }
             } catch (e: Exception) {
@@ -433,8 +613,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    suspend fun getTasksCompletedToday(): Int {
-        return try {
+    suspend fun getTasksCompletedToday(): Int = withContext(Dispatchers.IO) {
+        try {
             val today = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -452,13 +632,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             dao.getTasksCompletedInRange(today, tomorrow)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting tasks completed today", e)
             0
         }
     }
 
-    suspend fun getTasksCompletedThisWeek(): Int {
-        return try {
+    suspend fun getTasksCompletedThisWeek(): Int = withContext(Dispatchers.IO) {
+        try {
             val startOfWeek = Calendar.getInstance().apply {
                 set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
                 set(Calendar.HOUR_OF_DAY, 0)
@@ -477,13 +656,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             dao.getTasksCompletedInRange(startOfWeek, endOfWeek)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting tasks completed this week", e)
             0
         }
     }
 
-    suspend fun getTasksCompletedThisMonth(): Int {
-        return try {
+    suspend fun getTasksCompletedThisMonth(): Int = withContext(Dispatchers.IO) {
+        try {
             val startOfMonth = Calendar.getInstance().apply {
                 set(Calendar.DAY_OF_MONTH, 1)
                 set(Calendar.HOUR_OF_DAY, 0)
@@ -502,13 +680,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             dao.getTasksCompletedInRange(startOfMonth, endOfMonth)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting tasks completed this month", e)
             0
         }
     }
 
-    suspend fun getTimeWorkedToday(): Int {
-        return try {
+    suspend fun getTimeWorkedToday(): Int = withContext(Dispatchers.IO) {
+        try {
             val today = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -526,13 +703,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             dao.getTotalMinutesWorkedInRange(today, tomorrow) ?: 0
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting time worked today", e)
             0
         }
     }
 
-    suspend fun getTimeWorkedThisWeek(): Int {
-        return try {
+    suspend fun getTimeWorkedThisWeek(): Int = withContext(Dispatchers.IO) {
+        try {
             val startOfWeek = Calendar.getInstance().apply {
                 set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
                 set(Calendar.HOUR_OF_DAY, 0)
@@ -551,13 +727,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             dao.getTotalMinutesWorkedInRange(startOfWeek, endOfWeek) ?: 0
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting time worked this week", e)
             0
         }
     }
 
-    suspend fun getTimeWorkedThisMonth(): Int {
-        return try {
+    suspend fun getTimeWorkedThisMonth(): Int = withContext(Dispatchers.IO) {
+        try {
             val startOfMonth = Calendar.getInstance().apply {
                 set(Calendar.DAY_OF_MONTH, 1)
                 set(Calendar.HOUR_OF_DAY, 0)
@@ -576,27 +751,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             dao.getTotalMinutesWorkedInRange(startOfMonth, endOfMonth) ?: 0
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting time worked this month", e)
             0
         }
     }
 
-    suspend fun getAvgEstimationAccuracy(): Float {
-        return try {
+    suspend fun getAvgEstimationAccuracy(): Float = withContext(Dispatchers.IO) {
+        try {
             dao.getAverageEstimationAccuracy() ?: 0f
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting estimation accuracy", e)
             0f
         }
     }
 
-    suspend fun clearAllData() {
-        try {
-            userPreferences.clearAll()
-            autoCompletedProjects.clear()
-            Log.d(TAG, "All data cleared")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error clearing data", e)
+    fun clearAllData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                userPreferences.clearAll()
+                autoCompletedProjects.clear()
+                Log.d(TAG, "All data cleared")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing data", e)
+            }
         }
     }
 }

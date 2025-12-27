@@ -1,9 +1,13 @@
 package com.nowwhat.app.screens
 
 import android.app.DatePickerDialog
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,35 +17,30 @@ import androidx.compose.ui.unit.dp
 import com.nowwhat.app.R
 import com.nowwhat.app.model.Priority
 import com.nowwhat.app.model.Project
-import com.nowwhat.app.model.Severity
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProjectDialog(
     onDismiss: () -> Unit,
     onCreateProject: (Project) -> Unit
 ) {
     val context = LocalContext.current
-
-    var projectName by remember { mutableStateOf("") }
-    var projectDescription by remember { mutableStateOf("") }
-    var selectedPriority by remember { mutableStateOf(Priority.Medium) }
-    var selectedSeverity by remember { mutableStateOf(Severity.Medium) }
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var priority by remember { mutableStateOf(Priority.Medium) }
     var deadline by remember { mutableStateOf<Long?>(null) }
     var showError by remember { mutableStateOf(false) }
 
     val calendar = Calendar.getInstance()
-    if (deadline != null) {
-        calendar.timeInMillis = deadline!!
-    }
-
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
-            val selectedCalendar = Calendar.getInstance()
-            selectedCalendar.set(year, month, dayOfMonth, 23, 59, 59)
-            deadline = selectedCalendar.timeInMillis
+            val selectedDate = Calendar.getInstance().apply {
+                set(year, month, dayOfMonth, 23, 59, 59)
+            }
+            deadline = selectedDate.timeInMillis
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
@@ -57,35 +56,29 @@ fun CreateProjectDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 500.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
-                    value = projectName,
+                    value = name,
                     onValueChange = {
-                        projectName = it
+                        name = it
                         showError = false
                     },
                     label = { Text(stringResource(R.string.create_project_name)) },
                     placeholder = { Text(stringResource(R.string.create_project_name_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    isError = showError && projectName.isBlank()
+                    isError = showError && name.isBlank(),
+                    supportingText = if (showError && name.isBlank()) {
+                        { Text(stringResource(R.string.create_project_error_name)) }
+                    } else null
                 )
 
-                if (showError && projectName.isBlank()) {
-                    Text(
-                        stringResource(R.string.create_project_error_name),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
                 OutlinedTextField(
-                    value = projectDescription,
-                    onValueChange = { projectDescription = it },
+                    value = description,
+                    onValueChange = { description = it },
                     label = { Text(stringResource(R.string.create_project_description)) },
                     placeholder = { Text(stringResource(R.string.create_project_description_hint)) },
                     modifier = Modifier.fillMaxWidth(),
@@ -93,84 +86,78 @@ fun CreateProjectDialog(
                     maxLines = 5
                 )
 
-                Text(
-                    stringResource(R.string.create_task_priority),
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Priority.values().forEach { priority ->
-                        FilterChip(
-                            selected = selectedPriority == priority,
-                            onClick = { selectedPriority = priority },
-                            label = {
-                                Text(
-                                    getPriorityString(priority),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Text(
-                    stringResource(R.string.create_task_severity),
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Severity.values().forEach { severity ->
-                        FilterChip(
-                            selected = selectedSeverity == severity,
-                            onClick = { selectedSeverity = severity },
-                            label = {
-                                Text(
-                                    getSeverityString(severity),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                OutlinedButton(
-                    onClick = { datePickerDialog.show() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        if (deadline != null) {
-                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                .format(Date(deadline!!))
-                        } else {
-                            stringResource(R.string.create_project_select_deadline)
-                        }
+                        text = stringResource(R.string.create_task_priority),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Priority.values().forEach { p ->
+                            FilterChip(
+                                selected = priority == p,
+                                onClick = { priority = p },
+                                label = { Text(p.name) },
+                                leadingIcon = if (priority == p) {
+                                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
+                                } else null
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = deadline?.let {
+                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                    } ?: "",
+                    onValueChange = { },
+                    label = { Text(stringResource(R.string.create_project_deadline)) },
+                    placeholder = { Text(stringResource(R.string.create_project_select_deadline)) },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { datePickerDialog.show() }) {
+                            Icon(Icons.Default.CalendarToday, contentDescription = "Select Deadline")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = { datePickerDialog.show() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.filledTonalButtonColors()
+                ) {
+                    Text(if (deadline == null) stringResource(R.string.create_project_select_deadline) else "Change Date")
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (projectName.isBlank()) {
+                    if (name.isBlank()) {
                         showError = true
-                    } else {
-                        val newProject = Project(
-                            name = projectName.trim(),
-                            description = projectDescription.trim(),
-                            priority = selectedPriority,
-                            severity = selectedSeverity,
-                            deadline = deadline,
-                            createdAt = System.currentTimeMillis()
-                        )
-                        onCreateProject(newProject)
-                        onDismiss()
+                        Toast.makeText(context, "Name is required", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
+
+                    val newProject = Project(
+                        name = name.trim(),
+                        description = description.trim(),
+                        priority = priority,
+                        deadline = deadline,
+                        createdAt = System.currentTimeMillis(),
+                        isCompleted = false,
+                        isArchived = false
+                    )
+
+                    android.util.Log.d("CreateProjectDialog", "Creating project: ${newProject.name}, isCompleted=${newProject.isCompleted}, isArchived=${newProject.isArchived}")
+                    Toast.makeText(context, "Creating project: ${newProject.name}", Toast.LENGTH_SHORT).show()
+
+                    onCreateProject(newProject)
+                    onDismiss()
                 }
             ) {
                 Text(stringResource(R.string.create_project_create))
@@ -182,25 +169,4 @@ fun CreateProjectDialog(
             }
         }
     )
-}
-
-@Composable
-private fun getPriorityString(priority: Priority): String {
-    return when (priority) {
-        Priority.Critical -> stringResource(R.string.priority_critical)
-        Priority.Immediate -> stringResource(R.string.priority_immediate)
-        Priority.High -> stringResource(R.string.priority_high)
-        Priority.Medium -> stringResource(R.string.priority_medium)
-        Priority.Low -> stringResource(R.string.priority_low)
-    }
-}
-
-@Composable
-private fun getSeverityString(severity: Severity): String {
-    return when (severity) {
-        Severity.Critical -> stringResource(R.string.severity_critical)
-        Severity.High -> stringResource(R.string.severity_high)
-        Severity.Medium -> stringResource(R.string.severity_medium)
-        Severity.Low -> stringResource(R.string.severity_low)
-    }
 }

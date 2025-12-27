@@ -1,12 +1,13 @@
+// קובץ: app/src/main/java/com/nowwhat/app/model/SubTask.kt
 package com.nowwhat.app.model
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
 import androidx.room.Index
+import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "subtasks",
+    tableName = "sub_tasks",
     foreignKeys = [
         ForeignKey(
             entity = Task::class,
@@ -15,31 +16,19 @@ import androidx.room.Index
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["taskId"])]
+    indices = [Index("taskId")]
 )
 data class SubTask(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-
     val taskId: Int,
-
     val title: String,
-
-    // Time
-    val estimatedHours: Float = 0.5f,
-
-    // Priorities
-    val priority: Priority = Priority.Low,
-    val severity: Severity = Severity.Low,
-
-    // Dates
-    val deadline: Long? = null,
-    val createdAt: Long = System.currentTimeMillis(),
+    val isDone: Boolean = false,
+    // שינוי: ברירת מחדל 0 דקות
+    val estimatedMinutes: Int = 0,
+    val actualMinutes: Int = 0,
     val completedAt: Long? = null,
-
-    // Status
-    val isDone: Boolean = false
-) {
-    val estimatedMinutes: Int
-        get() = (estimatedHours * 60).toInt()
-}
+    val createdAt: Long = System.currentTimeMillis(),
+    // שינוי: ברירת מחדל ללא דד-ליין
+    val deadline: Long? = null
+)

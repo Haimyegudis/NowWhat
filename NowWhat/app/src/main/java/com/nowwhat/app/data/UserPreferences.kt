@@ -24,6 +24,7 @@ class UserPreferences(private val context: Context) {
         private val FOCUS_DND_MINUTES = intPreferencesKey("focus_dnd_minutes")
         private val CURRENT_STREAK = intPreferencesKey("current_streak")
         private val LONGEST_STREAK = intPreferencesKey("longest_streak")
+        private val CALENDAR_ID = longPreferencesKey("calendar_id")
     }
 
     val userProfileFlow: Flow<UserProfile?> = context.dataStore.data.map { preferences ->
@@ -41,7 +42,8 @@ class UserPreferences(private val context: Context) {
                 workDays = preferences[WORK_DAYS]?.split(",")?.map { it.toInt() }?.toSet() ?: setOf(1, 2, 3, 4, 5),
                 focusDndMinutes = preferences[FOCUS_DND_MINUTES] ?: 30,
                 currentStreak = preferences[CURRENT_STREAK] ?: 0,
-                longestStreak = preferences[LONGEST_STREAK] ?: 0
+                longestStreak = preferences[LONGEST_STREAK] ?: 0,
+                calendarId = preferences[CALENDAR_ID] ?: -1L
             )
         }
     }
@@ -58,6 +60,7 @@ class UserPreferences(private val context: Context) {
             preferences[FOCUS_DND_MINUTES] = user.focusDndMinutes
             preferences[CURRENT_STREAK] = user.currentStreak
             preferences[LONGEST_STREAK] = user.longestStreak
+            preferences[CALENDAR_ID] = user.calendarId
         }
     }
 

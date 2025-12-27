@@ -16,6 +16,9 @@ data class UserProfile(
     val focusModeDndDuration: Int = 30, // Minutes for DND
     val breakReminder: Boolean = true,  // Show break reminders
 
+    // Calendar Sync
+    val calendarId: Long = -1L, // -1 means All Calendars / None selected specific
+
     // Statistics
     val streak: Int = 0  // Consecutive days of completed tasks
 ) {

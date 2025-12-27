@@ -1,6 +1,6 @@
+// NowWhat/app/src/main/java/com/nowwhat/app/screens/DashboardScreen.kt
 package com.nowwhat.app.screens
 
-import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,17 +10,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nowwhat.app.R
@@ -36,14 +39,19 @@ fun DashboardScreen(
     user: UserProfile,
     projects: List<Project>,
     tasks: List<Task>,
+    subTasks: List<SubTask>,
     calendarEvents: List<CalendarEvent>,
     availableMinutes: Int,
     onNavigateToProjects: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToStats: () -> Unit,
+    onNavigateToCapacity: () -> Unit = {},
     onStartFocus: (Task) -> Unit,
     onFilterClick: (String) -> Unit,
-    onCreateTask: () -> Unit = {}
+    onCreateTask: () -> Unit = {},
+    onTaskClick: ((Task) -> Unit)? = null,
+    onProjectClick: ((Project) -> Unit)? = null,
+    onGetCapacityForRange: suspend (Long, Long) -> Int = { _, _ -> 0 }
 ) {
     val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val isDayTime = currentHour in 6..18
@@ -55,10 +63,6 @@ fun DashboardScreen(
     }
 
     val topTask = PriorityAlgorithm.recommendFocusTask(tasks, availableMinutes)
-
-    val plannedTasks = PriorityAlgorithm.getTasksForToday(tasks, availableMinutes, user)
-    val plannedMinutes = plannedTasks.sumOf { it.estimatedMinutes }
-    val freeMinutes = availableMinutes - plannedMinutes
 
     val criticalTasks = tasks.filter {
         (it.urgency == Urgency.Critical || it.urgency == Urgency.VeryHigh) && !it.isDone
@@ -73,6 +77,67 @@ fun DashboardScreen(
 
     var selectedPeriod by remember { mutableStateOf("Daily") }
 
+    // Dialog States
+    var showQueueDialog by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showCriticalDialog by remember { mutableStateOf(false) }
+    var showAtRiskDialog by remember { mutableStateOf(false) }
+
+    val queueTasks = remember(tasks, selectedPeriod) {
+        val (start, end) = PriorityAlgorithm.getRangeForPeriod(selectedPeriod)
+        PriorityAlgorithm.getQueueTasks(tasks, start, end)
+    }
+
+    // --- DIALOGS ---
+
+    if (showQueueDialog) {
+        TaskQueueDialog(
+            tasks = queueTasks,
+            subTasks = subTasks,
+            periodTitle = selectedPeriod,
+            onDismiss = { showQueueDialog = false },
+            onTaskClick = { task ->
+                showQueueDialog = false
+                onTaskClick?.invoke(task)
+            }
+        )
+    }
+
+    if (showCriticalDialog) {
+        TaskQueueDialog(
+            tasks = criticalTasks,
+            subTasks = subTasks,
+            periodTitle = "Critical Tasks",
+            onDismiss = { showCriticalDialog = false },
+            onTaskClick = { task ->
+                showCriticalDialog = false
+                onTaskClick?.invoke(task)
+            }
+        )
+    }
+
+    if (showAtRiskDialog) {
+        AtRiskProjectsDialog(
+            projects = atRiskProjects,
+            onDismiss = { showAtRiskDialog = false },
+            onProjectClick = { project ->
+                showAtRiskDialog = false
+                onProjectClick?.invoke(project)
+            }
+        )
+    }
+
+    if (showHelpDialog) {
+        AlertDialog(
+            onDismissRequest = { showHelpDialog = false },
+            title = { Text("App Help & Guide") },
+            text = { Text("Capacity now scans your calendar. Meetings outside work hours won't reduce your capacity.") },
+            confirmButton = { TextButton(onClick = { showHelpDialog = false }) { Text("Got it") } }
+        )
+    }
+
+    // --- UI CONTENT ---
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,59 +146,43 @@ fun DashboardScreen(
                         Icon(
                             imageVector = if (isDayTime) Icons.Default.WbSunny else Icons.Default.Nightlight,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
-                                "$greeting, ${user.name}! 👋",
-                                color = Color.White,
+                                "$greeting, ${user.name}!",
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 stringResource(R.string.dashboard_subtitle),
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                                 fontSize = 14.sp
                             )
                         }
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showHelpDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.Help, "Help", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+                    IconButton(onClick = onNavigateToCapacity) {
+                        Icon(Icons.Default.CalendarMonth, "Capacity", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
                     IconButton(onClick = onNavigateToStats) {
-                        Icon(
-                            Icons.Default.EmojiEvents,
-                            contentDescription = "Stats",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.EmojiEvents, "Stats", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDayTime) {
-                        Color(0xFF6200EE)
-                    } else {
-                        Color(0xFF1A237E)
-                    }
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
-        },
-        floatingActionButton = {
-            if (projects.isNotEmpty()) {
-                FloatingActionButton(
-                    onClick = onCreateTask,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Create Task")
-                }
-            }
         }
     ) { padding ->
         LazyColumn(
@@ -160,12 +209,14 @@ fun DashboardScreen(
 
             item {
                 CapacityCard(
+                    tasks = tasks,
+                    subTasks = subTasks,
                     selectedPeriod = selectedPeriod,
                     onPeriodChange = { selectedPeriod = it },
-                    plannedMinutes = plannedMinutes,
                     availableMinutes = availableMinutes,
-                    freeMinutes = freeMinutes,
-                    user = user
+                    user = user,
+                    onGetCapacity = onGetCapacityForRange,
+                    onClick = { showQueueDialog = true }
                 )
             }
 
@@ -183,8 +234,8 @@ fun DashboardScreen(
                 OverviewSection(
                     criticalCount = criticalTasks.size,
                     atRiskCount = atRiskProjects.size,
-                    onCriticalClick = { onFilterClick("critical") },
-                    onAtRiskClick = { onFilterClick("at_risk") }
+                    onCriticalClick = { showCriticalDialog = true },
+                    onAtRiskClick = { showAtRiskDialog = true }
                 )
             }
 
@@ -203,7 +254,8 @@ fun DashboardScreen(
                     onClick = onNavigateToProjects,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6200EE)
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Text(stringResource(R.string.dashboard_view_all_projects))
@@ -215,41 +267,45 @@ fun DashboardScreen(
     }
 }
 
+// --- Composable Functions ---
+
 @Composable
 fun CapacityCard(
+    tasks: List<Task>,
+    subTasks: List<SubTask>,
     selectedPeriod: String,
     onPeriodChange: (String) -> Unit,
-    plannedMinutes: Int,
     availableMinutes: Int,
-    freeMinutes: Int,
-    user: UserProfile
+    user: UserProfile,
+    onGetCapacity: suspend (Long, Long) -> Int,
+    onClick: (() -> Unit)? = null
 ) {
-    val periods = listOf("Daily", "Weekly", "Sprint", "Monthly")
+    val periods = listOf("Daily", "Weekly", "Monthly")
 
-    val (totalCapacity, usedCapacity) = when (selectedPeriod) {
-        "Daily" -> availableMinutes to plannedMinutes
-        "Weekly" -> {
-            val weeklyMinutes = user.workDays.size * user.dailyWorkMinutes
-            weeklyMinutes to (plannedMinutes * user.workDays.size)
+    var calculatedCapacity by remember { mutableIntStateOf(availableMinutes) }
+    val (start, end) = remember(selectedPeriod) { PriorityAlgorithm.getRangeForPeriod(selectedPeriod) }
+
+    LaunchedEffect(selectedPeriod, start, end, user) {
+        if (selectedPeriod == "Daily") {
+            calculatedCapacity = availableMinutes
+        } else {
+            calculatedCapacity = onGetCapacity(start, end)
         }
-        "Sprint" -> {
-            val sprintMinutes = 10 * user.workDays.size * user.dailyWorkMinutes / 7
-            sprintMinutes to (plannedMinutes * 10)
-        }
-        "Monthly" -> {
-            val monthlyMinutes = 22 * user.dailyWorkMinutes
-            monthlyMinutes to (plannedMinutes * 22)
-        }
-        else -> availableMinutes to plannedMinutes
     }
 
-    val freeCapacity = (totalCapacity - usedCapacity).coerceAtLeast(0)
+    val usedCapacity = remember(tasks, subTasks, start, end) {
+        PriorityAlgorithm.calculateWorkloadForRange(tasks, subTasks, start, end)
+    }
+
+    val freeCapacity = (calculatedCapacity - usedCapacity).coerceAtLeast(0)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -257,24 +313,48 @@ fun CapacityCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Text(
-                "📊 Capacity",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.capacity_title),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (onClick != null) {
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Queue", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (onClick != null) {
+                Text(
+                    "Top 5 tasks for $selectedPeriod view",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 periods.forEach { period ->
                     FilterChip(
                         selected = selectedPeriod == period,
                         onClick = { onPeriodChange(period) },
-                        label = { Text(period, fontSize = 12.sp) },
+                        label = {
+                            Text(
+                                period,
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Visible
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -282,8 +362,8 @@ fun CapacityCard(
 
             Spacer(Modifier.height(16.dp))
 
-            val progressPercent = if (totalCapacity > 0) {
-                (usedCapacity.toFloat() / totalCapacity).coerceIn(0f, 1f)
+            val progressPercent = if (calculatedCapacity > 0) {
+                (usedCapacity.toFloat() / calculatedCapacity).coerceIn(0f, 1f)
             } else 0f
 
             LinearProgressIndicator(
@@ -292,8 +372,8 @@ fun CapacityCard(
                     .fillMaxWidth()
                     .height(12.dp)
                     .clip(RoundedCornerShape(6.dp)),
-                color = if (progressPercent > 0.9f) Color(0xFFFF5722) else Color(0xFF4CAF50),
-                trackColor = Color(0xFFE0E0E0)
+                color = if (progressPercent > 0.9f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surface
             )
 
             Spacer(Modifier.height(16.dp))
@@ -303,18 +383,209 @@ fun CapacityCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 CapacityItem(
-                    label = stringResource(R.string.dashboard_workload),
+                    label = stringResource(R.string.capacity_workload),
                     minutes = usedCapacity,
-                    color = Color(0xFF2196F3)
+                    color = MaterialTheme.colorScheme.primary
                 )
                 CapacityItem(
-                    label = stringResource(R.string.dashboard_free_time),
+                    label = stringResource(R.string.capacity_free_time),
                     minutes = freeCapacity,
-                    color = Color(0xFF4CAF50)
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
         }
     }
+}
+
+@Composable
+fun TaskQueueDialog(
+    tasks: List<Task>,
+    subTasks: List<SubTask>,
+    periodTitle: String,
+    onDismiss: () -> Unit,
+    onTaskClick: (Task) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("$periodTitle Queue (${tasks.size})") },
+        text = {
+            if (tasks.isEmpty()) {
+                Text("No items found.")
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(tasks) { task ->
+                        val taskSubTasks = subTasks.filter { it.taskId == task.id && !it.isDone }
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onTaskClick(task) },
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val urgencyColor = when(task.urgency) {
+                                        Urgency.Critical -> MaterialTheme.colorScheme.error
+                                        Urgency.VeryHigh -> Color(0xFFFF5722)
+                                        Urgency.High -> Color(0xFFFF9800)
+                                        else -> Color.Gray
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(urgencyColor)
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            task.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            if (task.deadline != null) {
+                                                Text(
+                                                    SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(task.deadline)),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // SCORE BADGE
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            "Score: ${task.urgencyScore}",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                // REASON
+                                if (task.urgencyReason.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Why: ${task.urgencyReason}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontStyle = FontStyle.Italic,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+
+                                if (taskSubTasks.isNotEmpty()) {
+                                    Spacer(Modifier.height(8.dp))
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    Spacer(Modifier.height(4.dp))
+                                    taskSubTasks.forEach { subTask ->
+                                        Row(
+                                            modifier = Modifier.padding(start = 16.dp, top = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.SubdirectoryArrowRight, null, Modifier.size(14.dp))
+                                            Text(subTask.title, fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+// --- AT RISK PROJECTS DIALOG ---
+@Composable
+fun AtRiskProjectsDialog(
+    projects: List<Project>,
+    onDismiss: () -> Unit,
+    onProjectClick: (Project) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("At Risk Projects (${projects.size})") },
+        text = {
+            if (projects.isEmpty()) {
+                Text("No projects currently at risk.")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(projects) { project ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onProjectClick(project) },
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = project.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    if (project.deadline != null) {
+                                        Text(
+                                            text = "Due: ${SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(project.deadline))}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "At Risk",
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
 }
 
 @Composable
@@ -327,7 +598,7 @@ fun TodaysScheduleCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -339,24 +610,16 @@ fun TodaysScheduleCard(
                 stringResource(R.string.dashboard_todays_schedule),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(12.dp))
 
-            events.take(5).forEach { event ->
+            events.forEach { event ->
                 EventItem(
                     event = event,
                     isDuringWorkHours = event.isDuringWorkHours
                 )
                 Spacer(Modifier.height(8.dp))
-            }
-
-            if (events.size > 5) {
-                Text(
-                    stringResource(R.string.dashboard_more_events, events.size - 5),
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
             }
         }
     }
@@ -375,7 +638,7 @@ fun EventItem(event: CalendarEvent, isDuringWorkHours: Boolean) {
                 .size(8.dp)
                 .clip(CircleShape)
                 .background(
-                    if (isDuringWorkHours) Color(0xFFFF9800) else Color(0xFF9E9E9E)
+                    if (isDuringWorkHours) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
         )
         Spacer(Modifier.width(12.dp))
@@ -384,19 +647,19 @@ fun EventItem(event: CalendarEvent, isDuringWorkHours: Boolean) {
                 event.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 "${timeFormat.format(Date(event.startTime))} - ${timeFormat.format(Date(event.endTime))}",
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
         if (!isDuringWorkHours) {
             Icon(
                 Icons.Default.NightsStay,
                 contentDescription = stringResource(R.string.dashboard_after_hours),
-                tint = Color.Gray,
+                tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -415,7 +678,7 @@ fun OverviewSection(
             stringResource(R.string.dashboard_overview),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(Modifier.height(12.dp))
         Row(
@@ -426,7 +689,7 @@ fun OverviewSection(
                 title = stringResource(R.string.dashboard_critical_tasks),
                 count = criticalCount,
                 icon = Icons.Default.Error,
-                color = Color(0xFFFF5722),
+                color = MaterialTheme.colorScheme.error,
                 onClick = onCriticalClick,
                 modifier = Modifier.weight(1f)
             )
@@ -480,7 +743,7 @@ fun InteractiveCard(
             Text(
                 title,
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -509,7 +772,7 @@ fun TotalProgressCard(
             .clickable { showIncompleteDialog = true },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -521,7 +784,7 @@ fun TotalProgressCard(
                 stringResource(R.string.dashboard_total_progress),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(16.dp))
 
@@ -533,20 +796,20 @@ fun TotalProgressCard(
                     progress = { overallProgress / 100f },
                     modifier = Modifier.size(120.dp),
                     strokeWidth = 12.dp,
-                    color = Color(0xFF4CAF50),
-                    trackColor = Color(0xFFE0E0E0)
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surface
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "$overallProgress%",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         stringResource(R.string.dashboard_complete),
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -556,7 +819,7 @@ fun TotalProgressCard(
             Text(
                 stringResource(R.string.dashboard_tasks_done, completedTasks, totalTasks),
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
@@ -565,7 +828,7 @@ fun TotalProgressCard(
             Text(
                 "Tap to see incomplete tasks",
                 fontSize = 12.sp,
-                color = Color(0xFF6200EE),
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
@@ -611,11 +874,11 @@ fun IncompleteTasksDialog(
 @Composable
 fun UrgencyIndicator(urgency: Urgency) {
     val color = when (urgency) {
-        Urgency.Critical -> Color(0xFFD32F2F)
+        Urgency.Critical -> MaterialTheme.colorScheme.error
         Urgency.VeryHigh -> Color(0xFFFF5722)
         Urgency.High -> Color(0xFFFF9800)
-        Urgency.Medium -> Color(0xFF4CAF50)
-        Urgency.Low -> Color(0xFF2196F3)
+        Urgency.Medium -> MaterialTheme.colorScheme.primary
+        Urgency.Low -> MaterialTheme.colorScheme.secondary
     }
 
     Box(
@@ -635,7 +898,7 @@ fun RecommendedFocusCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF6200EE)
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
@@ -652,14 +915,14 @@ fun RecommendedFocusCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(R.string.dashboard_recommended_focus),
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         task.title,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -672,12 +935,12 @@ fun RecommendedFocusCard(
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     Icon(
                         Icons.Default.PlayArrow,
                         contentDescription = "Start Focus",
-                        tint = Color(0xFF6200EE),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -689,7 +952,7 @@ fun RecommendedFocusCard(
 @Composable
 fun UrgencyBadge(urgency: Urgency, score: Int) {
     val (text, emoji, color) = when (urgency) {
-        Urgency.Critical -> Triple("Critical", "🔴", Color(0xFFFFCDD2))
+        Urgency.Critical -> Triple("Critical", "🔴", MaterialTheme.colorScheme.errorContainer)
         Urgency.VeryHigh -> Triple("Very High", "🟠", Color(0xFFFFE0B2))
         Urgency.High -> Triple("High", "🟡", Color(0xFFFFF9C4))
         Urgency.Medium -> Triple("Medium", "🟢", Color(0xFFC8E6C9))
@@ -722,7 +985,7 @@ fun NoTasksCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFE8F5E9)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -735,13 +998,13 @@ fun NoTasksCard() {
                 stringResource(R.string.dashboard_no_tasks),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF4CAF50)
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 stringResource(R.string.dashboard_create_task),
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -753,7 +1016,7 @@ fun CapacityItem(label: String, minutes: Int, color: Color) {
         Text(
             label,
             fontSize = 12.sp,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
