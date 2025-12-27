@@ -1,8 +1,10 @@
 package com.nowwhat.app.screens
 
+import android.Manifest
 import android.app.Activity
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,7 +20,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.nowwhat.app.R
+import com.nowwhat.app.data.CalendarInfo
+import com.nowwhat.app.data.CalendarRepository
 import com.nowwhat.app.data.LanguageManager
 import com.nowwhat.app.model.AppLanguage
 import com.nowwhat.app.model.Gender
@@ -47,6 +52,18 @@ fun SettingsScreen(
     var focusDuration by remember { mutableIntStateOf(user.focusDndMinutes) }
     var showClearDialog by remember { mutableStateOf(false) }
     var showSavedSnackbar by remember { mutableStateOf(false) }
+
+    // Calendar Logic
+    val calendarRepository = remember { CalendarRepository(context) }
+    var availableCalendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
+    var selectedCalendar by remember { mutableStateOf<CalendarInfo?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
+            availableCalendars = calendarRepository.getAvailableCalendars()
+            selectedCalendar = availableCalendars.find { it.id == user.calendarId }
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -78,7 +95,7 @@ fun SettingsScreen(
                         onClearData()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F)
+                        containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
                     Text(stringResource(R.string.project_detail_confirm))
@@ -111,9 +128,9 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF6200EE),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -130,6 +147,7 @@ fun SettingsScreen(
 
             item {
                 SettingsSection(title = stringResource(R.string.settings_profile)) {
+                    // 1. Name
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
@@ -138,6 +156,7 @@ fun SettingsScreen(
                         singleLine = true
                     )
 
+                    // 2. Role
                     OutlinedTextField(
                         value = role,
                         onValueChange = { role = it },
@@ -146,43 +165,27 @@ fun SettingsScreen(
                         singleLine = true
                     )
 
-                    Text(
-                        stringResource(R.string.settings_gender),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Gender.values().forEach { gender ->
-                            FilterChip(
-                                selected = selectedGender == gender,
-                                onClick = { selectedGender = gender },
-                                label = { Text(getGenderString(gender)) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
+                    Spacer(Modifier.height(8.dp))
 
-                    Text(
-                        stringResource(R.string.settings_language),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                    // 3. Gender
+                    AppDropdownSelector(
+                        label = stringResource(R.string.settings_gender),
+                        options = Gender.values().toList(),
+                        selectedOption = selectedGender,
+                        onOptionSelected = { selectedGender = it },
+                        displayMapper = { getGenderString(context, it) }
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        AppLanguage.values().forEach { language ->
-                            FilterChip(
-                                selected = selectedLanguage == language,
-                                onClick = { selectedLanguage = language },
-                                label = { Text(getLanguageDisplayName(language)) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // 4. Language
+                    AppDropdownSelector(
+                        label = stringResource(R.string.settings_language),
+                        options = AppLanguage.values().toList(),
+                        selectedOption = selectedLanguage,
+                        onOptionSelected = { selectedLanguage = it },
+                        displayMapper = { getLanguageDisplayName(it) }
+                    )
                 }
             }
 
@@ -191,7 +194,8 @@ fun SettingsScreen(
                     Text(
                         stringResource(R.string.settings_work_hours),
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -229,7 +233,8 @@ fun SettingsScreen(
                     Text(
                         stringResource(R.string.settings_work_days),
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     WorkDaysSelector(
                         selectedDays = selectedDays,
@@ -239,25 +244,41 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSection(title = stringResource(R.string.settings_focus)) {
-                    Text(
-                        stringResource(R.string.settings_focus_duration),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(15, 30, 45, 60).forEach { minutes ->
-                            FilterChip(
-                                selected = focusDuration == minutes,
-                                onClick = { focusDuration = minutes },
-                                label = { Text("${minutes}m") },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                SettingsSection(title = "Calendar Sync") {
+                    if (availableCalendars.isEmpty()) {
+                        Text(
+                            "No calendars available or permission denied",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        val allOption = CalendarInfo(-1L, "All Calendars", "", "", 0, true)
+                        val calendarOptions = listOf(allOption) + availableCalendars
+                        val currentSelection = selectedCalendar ?: allOption
+
+                        AppDropdownSelector(
+                            label = "Select Calendar Source",
+                            options = calendarOptions,
+                            selectedOption = currentSelection,
+                            onOptionSelected = { selectedCalendar = if(it.id == -1L) null else it },
+                            displayMapper = {
+                                if (it.id == -1L) "All Calendars"
+                                else "${it.displayName} (${it.accountName})"
+                            }
+                        )
                     }
+                }
+            }
+
+            item {
+                SettingsSection(title = stringResource(R.string.settings_focus)) {
+                    AppDropdownSelector(
+                        label = stringResource(R.string.settings_focus_duration),
+                        options = listOf(15, 30, 45, 60, 90, 120),
+                        selectedOption = focusDuration,
+                        onOptionSelected = { focusDuration = it },
+                        displayMapper = { "$it minutes" }
+                    )
                 }
             }
 
@@ -267,7 +288,7 @@ fun SettingsScreen(
                         onClick = { showClearDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFD32F2F)
+                            containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null)
@@ -281,7 +302,7 @@ fun SettingsScreen(
                 Text(
                     "${stringResource(R.string.settings_version)}: 1.0.0",
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -297,7 +318,8 @@ fun SettingsScreen(
                             startWorkHour = startHour,
                             endWorkHour = endHour,
                             workDays = selectedDays,
-                            focusDndMinutes = focusDuration
+                            focusDndMinutes = focusDuration,
+                            calendarId = selectedCalendar?.id ?: -1L
                         )
 
                         scope.launch {
@@ -317,7 +339,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6200EE)
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null)
@@ -344,7 +366,8 @@ fun SettingsSection(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            // תיקון: שימוש בצבע דינמי של ה-Theme במקום לבן קשיח
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -357,7 +380,8 @@ fun SettingsSection(
                 title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                // תיקון: שימוש בצבע דינמי במקום שחור
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             content()
         }

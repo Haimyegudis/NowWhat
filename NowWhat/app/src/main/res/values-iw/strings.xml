@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">מה עכשיו</string>
 
-    <!-- Onboarding -->
     <string name="onboarding_welcome">ברוכים הבאים ל-NowWhat</string>
     <string name="onboarding_subtitle">בואו נייעל את זרימת העבודה שלכם</string>
     <string name="onboarding_title">בואו נגדיר את הפרופיל שלך</string>
@@ -19,17 +18,14 @@
     <string name="time_start">התחלה</string>
     <string name="time_end">סיום</string>
 
-    <!-- Gender -->
     <string name="gender_male">זכר</string>
     <string name="gender_female">נקבה</string>
     <string name="gender_not_specified">לא צוין</string>
 
-    <!-- Languages -->
     <string name="language_english">English</string>
     <string name="language_hebrew">עברית</string>
     <string name="language_russian">Русский</string>
 
-    <!-- Days of week -->
     <string name="day_sun">א׳</string>
     <string name="day_mon">ב׳</string>
     <string name="day_tue">ג׳</string>
@@ -38,11 +34,9 @@
     <string name="day_fri">ו׳</string>
     <string name="day_sat">ש׳</string>
 
-    <!-- Common -->
     <string name="common_hour_short">שע\'</string>
     <string name="common_minute_short">דק\'</string>
 
-    <!-- Dashboard -->
     <string name="dashboard_greeting_morning">בוקר טוב</string>
     <string name="dashboard_greeting_afternoon">צהריים טובים</string>
     <string name="dashboard_greeting_evening">ערב טוב</string>
@@ -64,7 +58,6 @@
     <string name="dashboard_after_hours">מחוץ לשעות עבודה</string>
     <string name="dashboard_more_events">+%d אירועים נוספים</string>
 
-    <!-- Projects Screen -->
     <string name="projects_title">פרויקטים</string>
     <string name="projects_all">הכל</string>
     <string name="projects_active">פעילים</string>
@@ -81,7 +74,6 @@
     <string name="projects_due_today">יעד היום</string>
     <string name="projects_due_in">יעד בעוד %d ימים</string>
 
-    <!-- Create Project Dialog -->
     <string name="create_project_title">צור פרויקט חדש</string>
     <string name="create_project_name">שם הפרויקט</string>
     <string name="create_project_name_hint">הזן שם פרויקט</string>
@@ -93,7 +85,6 @@
     <string name="create_project_create">צור</string>
     <string name="create_project_error_name">נא להזין שם פרויקט</string>
 
-    <!-- Create Task Dialog -->
     <string name="create_task_title">צור משימה חדשה</string>
     <string name="create_task_name">שם המשימה</string>
     <string name="create_task_name_hint">הזן שם משימה</string>
@@ -111,24 +102,20 @@
     <string name="create_task_error_name">נא להזין שם משימה</string>
     <string name="create_task_error_project">נא לבחור פרויקט</string>
 
-    <!-- Priority -->
     <string name="priority_immediate">מיידי</string>
     <string name="priority_high">גבוה</string>
     <string name="priority_medium">בינוני</string>
     <string name="priority_low">נמוך</string>
 
-    <!-- Severity -->
     <string name="severity_critical">קריטי</string>
     <string name="severity_high">גבוה</string>
     <string name="severity_medium">בינוני</string>
     <string name="severity_low">נמוך</string>
 
-    <!-- Risk Status -->
     <string name="risk_at_risk">בסיכון</string>
     <string name="risk_warning">אזהרה</string>
     <string name="risk_on_track">על המסלול</string>
 
-    <!-- Project Detail Screen -->
     <string name="project_detail_title">פרטי פרויקט</string>
     <string name="project_detail_tasks">משימות</string>
     <string name="project_detail_no_tasks">אין משימות בפרויקט זה</string>
@@ -142,7 +129,6 @@
     <string name="project_detail_completed">הושלמו</string>
     <string name="project_detail_critical">קריטיות</string>
 
-    <!-- Task Detail Screen -->
     <string name="task_detail_title">פרטי משימה</string>
     <string name="task_detail_edit">ערוך משימה</string>
     <string name="task_detail_delete">מחק משימה</string>
@@ -159,7 +145,6 @@
     <string name="task_detail_description">תיאור</string>
     <string name="task_detail_no_description">אין תיאור</string>
 
-    <!-- Focus Mode -->
     <string name="focus_title">מצב פוקוס</string>
     <string name="focus_pause">השהה</string>
     <string name="focus_resume">המשך</string>
@@ -173,7 +158,6 @@
     <string name="focus_dnd_active">מצב לא להפריע פעיל</string>
     <string name="focus_stay_focused">!הישאר ממוקד 🎯</string>
 
-    <!-- Settings Screen -->
     <string name="settings_title">הגדרות</string>
     <string name="settings_profile">פרופיל</string>
     <string name="settings_name">שם</string>
@@ -192,7 +176,6 @@
     <string name="settings_save">שמור שינויים</string>
     <string name="settings_saved">ההגדרות נשמרו בהצלחה</string>
 
-    <!-- Stats Screen -->
     <string name="stats_title">סטטיסטיקות</string>
     <string name="stats_current_streak">רצף נוכחי</string>
     <string name="stats_longest_streak">רצף הכי ארוך</string>
@@ -206,8 +189,16 @@
     <string name="stats_total_projects">סה״כ פרויקטים</string>
     <string name="stats_active_projects">פרויקטים פעילים</string>
     <string name="stats_completed_projects">פרויקטים שהושלמו</string>
-    <string name="priority_critical">קריטי</string>
-    <!-- Add SubTask Dialog -->
+
+    <string name="priority_very_high">גבוהה מאוד</string>
+    <string name="priority_critical">קריטית</string>
+
+    <string name="capacity_title">קיבולת</string>
+    <string name="capacity_tap_to_view">לחץ לצפייה במשימות הבאות</string>
+    <string name="capacity_planned">מתוכנן</string>
+    <string name="capacity_workload">עומס</string>
+    <string name="capacity_free_time">זמן פנוי</string>
+
     <string name="add_subtask_title">הוסף תת-משימה</string>
     <string name="add_subtask_name">שם תת-משימה</string>
     <string name="add_subtask_name_hint">הזן שם תת-משימה</string>

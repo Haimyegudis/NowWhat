@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">NowWhat</string>
 
-    <!-- Onboarding -->
     <string name="onboarding_welcome">Welcome to NowWhat</string>
     <string name="onboarding_subtitle">Let\'s optimize your workflow</string>
     <string name="onboarding_title">Let\'s set up your profile</string>
@@ -18,17 +17,14 @@
     <string name="time_start">Start</string>
     <string name="time_end">End</string>
 
-    <!-- Gender -->
     <string name="gender_male">Male</string>
     <string name="gender_female">Female</string>
     <string name="gender_not_specified">Not Specified</string>
 
-    <!-- Languages -->
     <string name="language_english">English</string>
     <string name="language_hebrew">עברית</string>
     <string name="language_russian">Русский</string>
 
-    <!-- Days of week -->
     <string name="day_sun">Sun</string>
     <string name="day_mon">Mon</string>
     <string name="day_tue">Tue</string>
@@ -37,11 +33,9 @@
     <string name="day_fri">Fri</string>
     <string name="day_sat">Sat</string>
 
-    <!-- Common -->
     <string name="common_hour_short">h</string>
     <string name="common_minute_short">m</string>
 
-    <!-- Dashboard -->
     <string name="dashboard_greeting_morning">Good morning</string>
     <string name="dashboard_greeting_afternoon">Good afternoon</string>
     <string name="dashboard_greeting_evening">Good evening</string>
@@ -63,7 +57,6 @@
     <string name="dashboard_after_hours">After hours</string>
     <string name="dashboard_more_events">+%d more events</string>
 
-    <!-- Projects Screen -->
     <string name="projects_title">Projects</string>
     <string name="projects_all">All</string>
     <string name="projects_active">Active</string>
@@ -80,7 +73,6 @@
     <string name="projects_due_today">Due today</string>
     <string name="projects_due_in">Due in %d days</string>
 
-    <!-- Create Project Dialog -->
     <string name="create_project_title">Create New Project</string>
     <string name="create_project_name">Project Name</string>
     <string name="create_project_name_hint">Enter project name</string>
@@ -92,7 +84,6 @@
     <string name="create_project_create">Create</string>
     <string name="create_project_error_name">Please enter project name</string>
 
-    <!-- Create Task Dialog -->
     <string name="create_task_title">Create New Task</string>
     <string name="create_task_name">Task Name</string>
     <string name="create_task_name_hint">Enter task name</string>
@@ -110,24 +101,20 @@
     <string name="create_task_error_name">Please enter task name</string>
     <string name="create_task_error_project">Please select a project</string>
 
-    <!-- Priority -->
     <string name="priority_immediate">Immediate</string>
     <string name="priority_high">High</string>
     <string name="priority_medium">Medium</string>
     <string name="priority_low">Low</string>
 
-    <!-- Severity -->
     <string name="severity_critical">Critical</string>
     <string name="severity_high">High</string>
     <string name="severity_medium">Medium</string>
     <string name="severity_low">Low</string>
 
-    <!-- Risk Status -->
     <string name="risk_at_risk">At Risk</string>
     <string name="risk_warning">Warning</string>
     <string name="risk_on_track">On Track</string>
 
-    <!-- Project Detail Screen -->
     <string name="project_detail_title">Project Details</string>
     <string name="project_detail_tasks">Tasks</string>
     <string name="project_detail_no_tasks">No tasks in this project</string>
@@ -141,7 +128,6 @@
     <string name="project_detail_completed">Completed</string>
     <string name="project_detail_critical">Critical</string>
 
-    <!-- Task Detail Screen -->
     <string name="task_detail_title">Task Details</string>
     <string name="task_detail_edit">Edit Task</string>
     <string name="task_detail_delete">Delete Task</string>
@@ -158,7 +144,6 @@
     <string name="task_detail_description">Description</string>
     <string name="task_detail_no_description">No description</string>
 
-    <!-- Focus Mode -->
     <string name="focus_title">Focus Mode</string>
     <string name="focus_pause">Pause</string>
     <string name="focus_resume">Resume</string>
@@ -172,7 +157,6 @@
     <string name="focus_dnd_active">Do Not Disturb is active</string>
     <string name="focus_stay_focused">Stay focused! 🎯</string>
 
-    <!-- Settings Screen -->
     <string name="settings_title">Settings</string>
     <string name="settings_profile">Profile</string>
     <string name="settings_name">Name</string>
@@ -191,7 +175,6 @@
     <string name="settings_save">Save Changes</string>
     <string name="settings_saved">Settings saved successfully</string>
 
-    <!-- Stats Screen -->
     <string name="stats_title">Statistics</string>
     <string name="stats_current_streak">Current Streak</string>
     <string name="stats_longest_streak">Longest Streak</string>
@@ -205,8 +188,16 @@
     <string name="stats_total_projects">Total Projects</string>
     <string name="stats_active_projects">Active Projects</string>
     <string name="stats_completed_projects">Completed Projects</string>
+
+    <string name="priority_very_high">Very High</string>
     <string name="priority_critical">Critical</string>
-    <!-- Add SubTask Dialog -->
+
+    <string name="capacity_title">Capacity</string>
+    <string name="capacity_tap_to_view">Tap to view upcoming tasks</string>
+    <string name="capacity_planned">planned</string>
+    <string name="capacity_workload">Workload</string>
+    <string name="capacity_free_time">Free Time</string>
+
     <string name="add_subtask_title">Add Sub-task</string>
     <string name="add_subtask_name">Sub-task Name</string>
     <string name="add_subtask_name_hint">Enter sub-task name</string>

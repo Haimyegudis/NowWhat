@@ -1,7 +1,6 @@
 <resources>
-    <string name="app_name">Что Сейчас</string>
+    <string name="app_name">NowWhat</string>
 
-    <!-- Onboarding -->
     <string name="onboarding_welcome">Добро пожаловать в NowWhat</string>
     <string name="onboarding_subtitle">Оптимизируем ваш рабочий процесс</string>
     <string name="onboarding_title">Давайте настроим ваш профиль</string>
@@ -18,17 +17,14 @@
     <string name="time_start">Начало</string>
     <string name="time_end">Конец</string>
 
-    <!-- Gender -->
     <string name="gender_male">Мужской</string>
     <string name="gender_female">Женский</string>
     <string name="gender_not_specified">Не указан</string>
 
-    <!-- Languages -->
     <string name="language_english">English</string>
     <string name="language_hebrew">עברית</string>
     <string name="language_russian">Русский</string>
 
-    <!-- Days of week -->
     <string name="day_sun">Вс</string>
     <string name="day_mon">Пн</string>
     <string name="day_tue">Вт</string>
@@ -37,11 +33,9 @@
     <string name="day_fri">Пт</string>
     <string name="day_sat">Сб</string>
 
-    <!-- Common -->
     <string name="common_hour_short">ч</string>
     <string name="common_minute_short">м</string>
 
-    <!-- Dashboard -->
     <string name="dashboard_greeting_morning">Доброе утро</string>
     <string name="dashboard_greeting_afternoon">Добрый день</string>
     <string name="dashboard_greeting_evening">Добрый вечер</string>
@@ -63,7 +57,6 @@
     <string name="dashboard_after_hours">Вне рабочих часов</string>
     <string name="dashboard_more_events">+%d событий</string>
 
-    <!-- Projects Screen -->
     <string name="projects_title">Проекты</string>
     <string name="projects_all">Все</string>
     <string name="projects_active">Активные</string>
@@ -80,7 +73,6 @@
     <string name="projects_due_today">Сегодня</string>
     <string name="projects_due_in">Через %d дн.</string>
 
-    <!-- Create Project Dialog -->
     <string name="create_project_title">Создать новый проект</string>
     <string name="create_project_name">Название проекта</string>
     <string name="create_project_name_hint">Введите название</string>
@@ -92,7 +84,6 @@
     <string name="create_project_create">Создать</string>
     <string name="create_project_error_name">Введите название проекта</string>
 
-    <!-- Create Task Dialog -->
     <string name="create_task_title">Создать новую задачу</string>
     <string name="create_task_name">Название задачи</string>
     <string name="create_task_name_hint">Введите название</string>
@@ -110,24 +101,24 @@
     <string name="create_task_error_name">Введите название задачи</string>
     <string name="create_task_error_project">Выберите проект</string>
 
-    <!-- Priority -->
+    <string name="priority_label">Приоритет</string>
+    <string name="severity_label">Важность</string>
+
     <string name="priority_immediate">Немедленно</string>
-    <string name="priority_high">Высокий</string>
+    <string name="priority_very_high">Очень высокий</string> <string name="priority_high">Высокий</string>
     <string name="priority_medium">Средний</string>
     <string name="priority_low">Низкий</string>
+    <string name="priority_critical">Критический</string>
 
-    <!-- Severity -->
     <string name="severity_critical">Критическая</string>
     <string name="severity_high">Высокая</string>
     <string name="severity_medium">Средняя</string>
     <string name="severity_low">Низкая</string>
 
-    <!-- Risk Status -->
     <string name="risk_at_risk">В опасности</string>
     <string name="risk_warning">Предупреждение</string>
     <string name="risk_on_track">В плане</string>
 
-    <!-- Project Detail Screen -->
     <string name="project_detail_title">Детали проекта</string>
     <string name="project_detail_tasks">Задачи</string>
     <string name="project_detail_no_tasks">В этом проекте нет задач</string>
@@ -141,7 +132,6 @@
     <string name="project_detail_completed">Завершенные</string>
     <string name="project_detail_critical">Критические</string>
 
-    <!-- Task Detail Screen -->
     <string name="task_detail_title">Детали задачи</string>
     <string name="task_detail_edit">Изменить задачу</string>
     <string name="task_detail_delete">Удалить задачу</string>
@@ -158,7 +148,6 @@
     <string name="task_detail_description">Описание</string>
     <string name="task_detail_no_description">Нет описания</string>
 
-    <!-- Focus Mode -->
     <string name="focus_title">Режим фокуса</string>
     <string name="focus_pause">Пауза</string>
     <string name="focus_resume">Продолжить</string>
@@ -172,7 +161,6 @@
     <string name="focus_dnd_active">Режим "Не беспокоить" активен</string>
     <string name="focus_stay_focused">Оставайтесь сосредоточенными! 🎯</string>
 
-    <!-- Settings Screen -->
     <string name="settings_title">Настройки</string>
     <string name="settings_profile">Профиль</string>
     <string name="settings_name">Имя</string>
@@ -191,7 +179,6 @@
     <string name="settings_save">Сохранить изменения</string>
     <string name="settings_saved">Настройки успешно сохранены</string>
 
-    <!-- Stats Screen -->
     <string name="stats_title">Статистика</string>
     <string name="stats_current_streak">Текущая серия</string>
     <string name="stats_longest_streak">Рекордная серия</string>
@@ -205,8 +192,13 @@
     <string name="stats_total_projects">Всего проектов</string>
     <string name="stats_active_projects">Активные проекты</string>
     <string name="stats_completed_projects">Завершенные проекты</string>
-    <string name="priority_critical">Критический</string>
-    <!-- Add SubTask Dialog -->
+
+    <string name="capacity_title">Ресурсы</string>
+    <string name="capacity_tap_to_view">Нажмите для просмотра задач</string>
+    <string name="capacity_planned">по плану</string>
+    <string name="capacity_workload">Нагрузка</string>
+    <string name="capacity_free_time">Свободное время</string>
+
     <string name="add_subtask_title">Добавить подзадачу</string>
     <string name="add_subtask_name">Название подзадачи</string>
     <string name="add_subtask_name_hint">Введите название</string>
