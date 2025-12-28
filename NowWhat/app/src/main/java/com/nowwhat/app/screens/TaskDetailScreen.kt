@@ -49,7 +49,7 @@ fun TaskDetailScreen(
     onAddSubTask: () -> Unit,
     onToggleSubTaskDone: (SubTask) -> Unit,
     onClearWaitingFor: () -> Unit,
-    onUpdateReminder: (Long?) -> Unit // פרמטר חדש לעדכון התראה
+    onUpdateReminder: (Long?) -> Unit
 ) {
     val isDarkMode = isSystemInDarkTheme()
     val context = LocalContext.current
@@ -57,11 +57,9 @@ fun TaskDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAutoTaskCompleteDialog by remember { mutableStateOf(false) }
 
-    // --- לוגיקה של התראות (Reminder) ---
     val reminderCalendar = remember { Calendar.getInstance() }
 
     fun showReminderPickers() {
-        // אם כבר יש התראה, נתחיל מהזמן שלה. אם לא, מהזמן הנוכחי.
         val currentRef = if (task.reminderTime != null) Date(task.reminderTime) else Date()
         val cal = Calendar.getInstance().apply { time = currentRef }
 
@@ -71,7 +69,6 @@ fun TaskDetailScreen(
                 reminderCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
                 reminderCalendar.set(Calendar.MINUTE, minute)
                 reminderCalendar.set(Calendar.SECOND, 0)
-                // עדכון ה-ViewModel
                 onUpdateReminder(reminderCalendar.timeInMillis)
             },
             cal.get(Calendar.HOUR_OF_DAY),
@@ -91,15 +88,11 @@ fun TaskDetailScreen(
         ).show()
     }
 
-    // בקשת הרשאה להתראות (Android 13+)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
-            if (isGranted) {
-                showReminderPickers()
-            } else {
-                Toast.makeText(context, "Notification permission required for reminders", Toast.LENGTH_SHORT).show()
-            }
+            if (isGranted) showReminderPickers()
+            else Toast.makeText(context, "Permission required", Toast.LENGTH_SHORT).show()
         }
     )
 
@@ -114,7 +107,6 @@ fun TaskDetailScreen(
             showReminderPickers()
         }
     }
-    // ------------------------------------
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -127,17 +119,11 @@ fun TaskDetailScreen(
                         showDeleteDialog = false
                         onDeleteTask()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F)
-                    )
-                ) {
-                    Text(stringResource(R.string.project_detail_confirm))
-                }
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) { Text(stringResource(R.string.project_detail_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(stringResource(R.string.create_project_cancel))
-                }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.create_project_cancel)) }
             }
         )
     }
@@ -171,17 +157,11 @@ fun TaskDetailScreen(
             TopAppBar(
                 title = { Text(task.title) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+                    IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
                 },
                 actions = {
-                    IconButton(onClick = onEditTask) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
-                    }
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete")
-                    }
+                    IconButton(onClick = onEditTask) { Icon(Icons.Default.Edit, contentDescription = "Edit") }
+                    IconButton(onClick = { showDeleteDialog = true }) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF6200EE),
@@ -193,10 +173,7 @@ fun TaskDetailScreen(
         },
         floatingActionButton = {
             if (!task.isDone) {
-                FloatingActionButton(
-                    onClick = onStartFocus,
-                    containerColor = Color(0xFF6200EE)
-                ) {
+                FloatingActionButton(onClick = onStartFocus, containerColor = Color(0xFF6200EE)) {
                     Icon(Icons.Default.PlayArrow, contentDescription = "Start Focus")
                 }
             }
@@ -242,23 +219,12 @@ fun TaskDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Waiting for:",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFFEF6C00)
-                                )
-                                Text(
-                                    task.waitingFor,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFE65100)
-                                )
+                                Text("Waiting for:", fontSize = 12.sp, color = Color(0xFFEF6C00))
+                                Text(task.waitingFor, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
                             }
                             Button(
                                 onClick = onClearWaitingFor,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFFF9800)
-                                ),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                             ) {
                                 Text("Got Reply", fontSize = 12.sp)
@@ -268,12 +234,7 @@ fun TaskDetailScreen(
                 }
             }
 
-            item {
-                TaskStatusCard(
-                    task = task,
-                    onToggleDone = onToggleTaskDone
-                )
-            }
+            item { TaskStatusCard(task = task, onToggleDone = onToggleTaskDone) }
 
             item {
                 TaskDetailsCard(
@@ -283,15 +244,9 @@ fun TaskDetailScreen(
                 )
             }
 
-            item {
-                TaskTimeCard(task = task)
-            }
+            item { TaskTimeCard(task = task) }
 
-            if (task.description.isNotEmpty()) {
-                item {
-                    TaskDescriptionCard(task = task)
-                }
-            }
+            if (task.description.isNotEmpty()) { item { TaskDescriptionCard(task = task) } }
 
             item {
                 Row(
@@ -299,11 +254,7 @@ fun TaskDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        stringResource(R.string.task_detail_subtasks),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(stringResource(R.string.task_detail_subtasks), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     TextButton(onClick = onAddSubTask) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
@@ -322,10 +273,7 @@ fun TaskDetailScreen(
                     )
                 }
             } else {
-                items(
-                    items = subTasks,
-                    key = { it.id }
-                ) { subTask ->
+                items(items = subTasks, key = { it.id }) { subTask ->
                     SwipeableSubTaskItem(
                         subTask = subTask,
                         isDarkMode = isDarkMode,
@@ -341,112 +289,32 @@ fun TaskDetailScreen(
                     )
                 }
             }
-
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-fun TaskStatusCard(task: Task, onToggleDone: () -> Unit) {
-    val containerColor = if (task.isDone) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceVariant
-
+fun TaskDetailsCard(task: Task, onEditReminder: () -> Unit, onDeleteReminder: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    if (task.isDone) "✅ Completed" else "⏳ In Progress",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (task.isDone) Color(0xFF4CAF50) else Color(0xFF2196F3)
-                )
-                task.completedAt?.let { completedAt ->
-                    Text(
-                        SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date(completedAt)),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Button(
-                onClick = onToggleDone,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (task.isDone) Color.Gray else Color(0xFF4CAF50)
-                )
-            ) {
-                Text(
-                    if (task.isDone)
-                        stringResource(R.string.task_detail_mark_undone)
-                    else
-                        stringResource(R.string.task_detail_mark_done)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun TaskDetailsCard(
-    task: Task,
-    onEditReminder: () -> Unit,
-    onDeleteReminder: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DetailRow(
-                label = stringResource(R.string.create_task_priority),
-                value = when (task.priority) {
-                    Priority.Critical -> "💀 ${stringResource(R.string.priority_critical)}"
-                    Priority.Immediate -> "⚡ ${stringResource(R.string.priority_immediate)}"
-                    Priority.High -> "🔴 ${stringResource(R.string.priority_high)}"
-                    Priority.Medium -> "🟡 ${stringResource(R.string.priority_medium)}"
-                    Priority.Low -> "🟢 ${stringResource(R.string.priority_low)}"
-                }
-            )
-
-            DetailRow(
-                label = stringResource(R.string.create_task_severity),
-                value = when (task.severity) {
-                    Severity.Critical -> "💀 ${stringResource(R.string.severity_critical)}"
-                    Severity.High -> "⚠️ ${stringResource(R.string.severity_high)}"
-                    Severity.Medium -> "📊 ${stringResource(R.string.severity_medium)}"
-                    Severity.Low -> "📋 ${stringResource(R.string.severity_low)}"
-                }
-            )
+            DetailRow(label = stringResource(R.string.create_task_priority), value = task.priority.name)
+            DetailRow(label = stringResource(R.string.create_task_severity), value = task.severity.name)
 
             task.deadline?.let { deadline ->
-                val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                 DetailRow(
                     label = stringResource(R.string.create_task_deadline),
-                    value = "📅 ${dateFormat.format(Date(deadline))}"
+                    value = "📅 ${SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(deadline))}"
                 )
             }
 
-            // --- שורת ההתראה ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -463,106 +331,68 @@ fun TaskDetailsCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         Text(
-                            "🔔 ${SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(task.reminderTime))}",
+                            SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(task.reminderTime)),
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        IconButton(
-                            onClick = onEditReminder,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Edit Reminder",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onEditReminder, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         }
-                        IconButton(
-                            onClick = onDeleteReminder,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Delete Reminder",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        IconButton(onClick = onDeleteReminder, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Close, "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                         }
                     }
                 } else {
-                    TextButton(
-                        onClick = onEditReminder,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.height(24.dp)
-                    ) {
+                    TextButton(onClick = onEditReminder, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(24.dp)) {
                         Text("Add Reminder", fontSize = 14.sp)
                     }
                 }
             }
-            // ------------------
+            DetailRow(label = "Created", value = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(task.createdAt)))
+        }
+    }
+}
 
-            DetailRow(
-                label = "Created",
-                value = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(task.createdAt))
-            )
+@Composable
+fun TaskStatusCard(task: Task, onToggleDone: () -> Unit) {
+    val containerColor = if (task.isDone) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceVariant
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = containerColor)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text(if (task.isDone) "✅ Completed" else "⏳ In Progress", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (task.isDone) Color(0xFF4CAF50) else Color(0xFF2196F3))
+                task.completedAt?.let { completedAt ->
+                    Text(
+                        SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date(completedAt)),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Button(onClick = onToggleDone, colors = ButtonDefaults.buttonColors(containerColor = if (task.isDone) Color.Gray else Color(0xFF4CAF50))) {
+                Text(if (task.isDone) stringResource(R.string.task_detail_mark_undone) else stringResource(R.string.task_detail_mark_done))
+            }
         }
     }
 }
 
 @Composable
 fun TaskTimeCard(task: Task) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Text(
-                "⏱️ Time Tracking",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+            Text("⏱️ Time Tracking", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                TimeItem(
-                    label = stringResource(R.string.task_detail_estimated),
-                    minutes = task.estimatedMinutes,
-                    color = Color(0xFF2196F3)
-                )
-                TimeItem(
-                    label = stringResource(R.string.task_detail_actual),
-                    minutes = task.actualMinutes,
-                    color = Color(0xFFFF9800)
-                )
-                TimeItem(
-                    label = stringResource(R.string.task_detail_remaining),
-                    minutes = task.remainingMinutes,
-                    color = Color(0xFF4CAF50)
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TimeItem(stringResource(R.string.task_detail_estimated), task.estimatedMinutes, Color(0xFF2196F3))
+                TimeItem(stringResource(R.string.task_detail_actual), task.actualMinutes, Color(0xFFFF9800))
+                TimeItem(stringResource(R.string.task_detail_remaining), task.remainingMinutes, Color(0xFF4CAF50))
             }
-
             Spacer(Modifier.height(12.dp))
-
             LinearProgressIndicator(
                 progress = { task.progress / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
+                modifier = Modifier.fillMaxWidth().height(8.dp),
                 color = Color(0xFF6200EE),
                 trackColor = MaterialTheme.colorScheme.surface
             )
@@ -572,123 +402,44 @@ fun TaskTimeCard(task: Task) {
 
 @Composable
 fun TaskDescriptionCard(task: Task) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Text(
-                stringResource(R.string.task_detail_description),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+            Text(stringResource(R.string.task_detail_description), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Text(
-                task.description,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-            )
+            Text(task.description, fontSize = 14.sp)
         }
     }
 }
 
 @Composable
 fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            label,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
-        Text(
-            value,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 fun TimeItem(label: String, minutes: Int, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            label,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
+        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
         Spacer(Modifier.height(4.dp))
-        Text(
-            "${minutes / 60}h ${minutes % 60}m",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
+        Text("${minutes / 60}h ${minutes % 60}m", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = color)
     }
 }
 
 @Composable
 fun SubTaskItem(subTask: SubTask, isDarkMode: Boolean, onToggleDone: () -> Unit) {
-    val containerColor = if (subTask.isDone) {
-        if (isDarkMode) Color(0xFF1B5E20) else Color(0xFFE8F5E9)
-    } else {
-        if (isDarkMode) Color(0xFF2C2C2C) else Color.White
-    }
+    val containerColor = if (subTask.isDone) (if (isDarkMode) Color(0xFF1B5E20) else Color(0xFFE8F5E9)) else (if (isDarkMode) Color(0xFF2C2C2C) else Color.White)
+    val textColor = if (subTask.isDone) (if (isDarkMode) Color.White else Color.Gray) else (if (isDarkMode) Color.White else Color.Black)
 
-    val textColor = if (subTask.isDone) {
-        if (isDarkMode) Color.White else Color.Gray
-    } else {
-        if (isDarkMode) Color.White else Color.Black
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onToggleDone() }
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = subTask.isDone,
-                onCheckedChange = { onToggleDone() },
-                colors = CheckboxDefaults.colors(
-                    checkedColor = Color(0xFF4CAF50),
-                    checkmarkColor = Color.White
-                )
-            )
-
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = containerColor)) {
+        Row(modifier = Modifier.fillMaxWidth().clickable { onToggleDone() }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = subTask.isDone, onCheckedChange = { onToggleDone() }, colors = CheckboxDefaults.colors(checkedColor = Color(0xFF4CAF50), checkmarkColor = Color.White))
             Spacer(Modifier.width(8.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    subTask.title,
-                    fontSize = 14.sp,
-                    textDecoration = if (subTask.isDone) TextDecoration.LineThrough else TextDecoration.None,
-                    color = textColor
-                )
-                Text(
-                    "${subTask.estimatedMinutes / 60}h ${subTask.estimatedMinutes % 60}m",
-                    fontSize = 12.sp,
-                    color = if (isDarkMode) Color.LightGray else Color.Gray
-                )
+                Text(subTask.title, fontSize = 14.sp, textDecoration = if (subTask.isDone) TextDecoration.LineThrough else TextDecoration.None, color = textColor)
+                Text("${subTask.estimatedMinutes / 60}h ${subTask.estimatedMinutes % 60}m", fontSize = 12.sp, color = if (isDarkMode) Color.LightGray else Color.Gray)
             }
         }
     }
@@ -696,11 +447,7 @@ fun SubTaskItem(subTask: SubTask, isDarkMode: Boolean, onToggleDone: () -> Unit)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeableSubTaskItem(
-    subTask: SubTask,
-    isDarkMode: Boolean,
-    onToggleDone: () -> Unit
-) {
+fun SwipeableSubTaskItem(subTask: SubTask, isDarkMode: Boolean, onToggleDone: () -> Unit) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.StartToEnd) {
@@ -711,40 +458,15 @@ fun SwipeableSubTaskItem(
             }
         }
     )
-
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
-            val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                Color(0xFF4CAF50)
-            } else {
-                Color.Transparent
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 4.dp)
-                    .background(color, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "Done",
-                        tint = Color.White
-                    )
-                }
+            val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Color(0xFF4CAF50) else Color.Transparent
+            Box(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp).background(color, RoundedCornerShape(12.dp)).padding(horizontal = 20.dp), contentAlignment = Alignment.CenterStart) {
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Icon(Icons.Default.Check, "Done", tint = Color.White)
             }
         },
-        content = {
-            SubTaskItem(
-                subTask = subTask,
-                isDarkMode = isDarkMode,
-                onToggleDone = onToggleDone
-            )
-        },
+        content = { SubTaskItem(subTask = subTask, isDarkMode = isDarkMode, onToggleDone = onToggleDone) },
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = false
     )

@@ -14,7 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,10 +52,10 @@ fun SettingsScreen(
     var focusDuration by remember { mutableIntStateOf(user.focusDndMinutes) }
 
     var showClearDialog by remember { mutableStateOf(false) }
-    var showHelpDialog by remember { mutableStateOf(false) } // Added state for Help Dialog
+    var showHelpDialog by remember { mutableStateOf(false) }
     var showSavedSnackbar by remember { mutableStateOf(false) }
 
-    // Calendar Logic
+    // Calendar Data
     val calendarRepository = remember { CalendarRepository(context) }
     var availableCalendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
     var selectedCalendar by remember { mutableStateOf<CalendarInfo?>(null) }
@@ -69,65 +69,31 @@ fun SettingsScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val startTimePicker = remember {
-        TimePickerDialog(
-            context,
-            { _, hour, _ -> startHour = hour },
-            startHour, 0, true
-        )
-    }
+    // Pickers
+    val startTimePicker = TimePickerDialog(
+        context, { _, hour, _ -> startHour = hour }, startHour, 0, true
+    )
+    val endTimePicker = TimePickerDialog(
+        context, { _, hour, _ -> endHour = hour }, endHour, 0, true
+    )
 
-    val endTimePicker = remember {
-        TimePickerDialog(
-            context,
-            { _, hour, _ -> endHour = hour },
-            endHour, 0, true
-        )
-    }
-
-    // --- Help Dialog ---
+    // Dialogs
     if (showHelpDialog) {
         AlertDialog(
             onDismissRequest = { showHelpDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.help_title),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            },
+            title = { Text(stringResource(R.string.help_title)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.help_intro),
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    HelpFeatureItem(
-                        title = stringResource(R.string.help_feature_1_title),
-                        description = stringResource(R.string.help_feature_1_desc)
-                    )
-                    HelpFeatureItem(
-                        title = stringResource(R.string.help_feature_2_title),
-                        description = stringResource(R.string.help_feature_2_desc)
-                    )
-                    HelpFeatureItem(
-                        title = stringResource(R.string.help_feature_3_title),
-                        description = stringResource(R.string.help_feature_3_desc)
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.help_intro))
+                    HorizontalDivider()
+                    Text("🚀 ${stringResource(R.string.help_feature_1_title)}\n${stringResource(R.string.help_feature_1_desc)}")
+                    Text("⏱️ ${stringResource(R.string.help_feature_2_title)}\n${stringResource(R.string.help_feature_2_desc)}")
+                    Text("📊 ${stringResource(R.string.help_feature_3_title)}\n${stringResource(R.string.help_feature_3_desc)}")
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showHelpDialog = false }) {
-                    Text(stringResource(R.string.help_close), fontWeight = FontWeight.Bold)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+                TextButton(onClick = { showHelpDialog = false }) { Text(stringResource(R.string.help_close)) }
+            }
         )
     }
 
@@ -142,9 +108,7 @@ fun SettingsScreen(
                         showClearDialog = false
                         onClearData()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text(stringResource(R.string.project_detail_confirm))
                 }
@@ -159,9 +123,7 @@ fun SettingsScreen(
 
     LaunchedEffect(showSavedSnackbar) {
         if (showSavedSnackbar) {
-            snackbarHostState.showSnackbar(
-                message = context.getString(R.string.settings_saved)
-            )
+            snackbarHostState.showSnackbar(context.getString(R.string.settings_saved))
             showSavedSnackbar = false
         }
     }
@@ -171,13 +133,11 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+                    IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, "Back") }
                 },
                 actions = {
                     IconButton(onClick = { showHelpDialog = true }) {
-                        Icon(Icons.Default.Info, contentDescription = "Help")
+                        Icon(Icons.Default.HelpOutline, "Help")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -194,38 +154,16 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { Spacer(Modifier.height(8.dp)) }
 
-            // Help Banner Button
+            // Section 1: Profile
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    onClick = { showHelpDialog = true }
+                SettingsCard(
+                    title = stringResource(R.string.settings_profile),
+                    icon = Icons.Default.Person
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.settings_help),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            item {
-                SettingsSection(title = stringResource(R.string.settings_profile)) {
-                    // 1. Name
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
@@ -233,8 +171,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-
-                    // 2. Role
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = role,
                         onValueChange = { role = it },
@@ -242,39 +179,42 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // 3. Gender
-                    AppDropdownSelector(
-                        label = stringResource(R.string.settings_gender),
-                        options = Gender.values().toList(),
-                        selectedOption = selectedGender,
-                        onOptionSelected = { selectedGender = it },
-                        displayMapper = { getGenderString(context, it) }
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // 4. Language
-                    AppDropdownSelector(
-                        label = stringResource(R.string.settings_language),
-                        options = AppLanguage.values().toList(),
-                        selectedOption = selectedLanguage,
-                        onOptionSelected = { selectedLanguage = it },
-                        displayMapper = { getLanguageDisplayName(it) }
-                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.weight(1f)) {
+                            AppDropdownSelector(
+                                label = stringResource(R.string.settings_gender),
+                                options = Gender.values().toList(),
+                                selectedOption = selectedGender,
+                                onOptionSelected = { selectedGender = it },
+                                displayMapper = { getGenderString(context, it) }
+                            )
+                        }
+                        Box(Modifier.weight(1f)) {
+                            AppDropdownSelector(
+                                label = stringResource(R.string.settings_language),
+                                options = AppLanguage.values().toList(),
+                                selectedOption = selectedLanguage,
+                                onOptionSelected = { selectedLanguage = it },
+                                displayMapper = { getLanguageDisplayName(it) }
+                            )
+                        }
+                    }
                 }
             }
 
+            // Section 2: Work & Calendar
             item {
-                SettingsSection(title = stringResource(R.string.settings_work)) {
+                SettingsCard(
+                    title = stringResource(R.string.settings_work),
+                    icon = Icons.Default.Work
+                ) {
                     Text(
                         stringResource(R.string.settings_work_hours),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
+                    Spacer(Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -283,73 +223,51 @@ fun SettingsScreen(
                             onClick = { startTimePicker.show() },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(R.string.time_start), fontSize = 12.sp)
-                                Text(
-                                    String.format("%02d:00", startHour),
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Text("${stringResource(R.string.time_start)}: ${String.format("%02d:00", startHour)}")
                         }
-
                         OutlinedButton(
                             onClick = { endTimePicker.show() },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(R.string.time_end), fontSize = 12.sp)
-                                Text(
-                                    String.format("%02d:00", endHour),
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Text("${stringResource(R.string.time_end)}: ${String.format("%02d:00", endHour)}")
                         }
                     }
 
+                    Spacer(Modifier.height(16.dp))
                     Text(
                         stringResource(R.string.settings_work_days),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
+                    Spacer(Modifier.height(8.dp))
                     WorkDaysSelector(
                         selectedDays = selectedDays,
                         onDaysChange = { selectedDays = it }
                     )
+
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(16.dp))
+
+                    Text("Calendar Integration", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(8.dp))
+                    val calOptions = listOf(CalendarInfo(-1, "All Calendars", "", "", 0, true)) + availableCalendars
+                    AppDropdownSelector(
+                        label = "Source",
+                        options = calOptions,
+                        selectedOption = selectedCalendar ?: calOptions.first(),
+                        onOptionSelected = { selectedCalendar = if (it.id == -1L) null else it },
+                        displayMapper = { it.displayName }
+                    )
                 }
             }
 
+            // Section 3: Focus & Data
             item {
-                SettingsSection(title = "Calendar Sync") {
-                    if (availableCalendars.isEmpty()) {
-                        Text(
-                            "No calendars available or permission denied",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            fontSize = 12.sp
-                        )
-                    } else {
-                        val allOption = CalendarInfo(-1L, "All Calendars", "", "", 0, true)
-                        val calendarOptions = listOf(allOption) + availableCalendars
-                        val currentSelection = selectedCalendar ?: allOption
-
-                        AppDropdownSelector(
-                            label = "Select Calendar Source",
-                            options = calendarOptions,
-                            selectedOption = currentSelection,
-                            onOptionSelected = { selectedCalendar = if(it.id == -1L) null else it },
-                            displayMapper = {
-                                if (it.id == -1L) "All Calendars"
-                                else "${it.displayName} (${it.accountName})"
-                            }
-                        )
-                    }
-                }
-            }
-
-            item {
-                SettingsSection(title = stringResource(R.string.settings_focus)) {
+                SettingsCard(
+                    title = stringResource(R.string.settings_focus),
+                    icon = Icons.Default.Timer
+                ) {
                     AppDropdownSelector(
                         label = stringResource(R.string.settings_focus_duration),
                         options = listOf(15, 30, 45, 60, 90, 120),
@@ -357,17 +275,13 @@ fun SettingsScreen(
                         onOptionSelected = { focusDuration = it },
                         displayMapper = { "$it minutes" }
                     )
-                }
-            }
 
-            item {
-                SettingsSection(title = stringResource(R.string.settings_data)) {
-                    Button(
+                    Spacer(Modifier.height(24.dp))
+
+                    OutlinedButton(
                         onClick = { showClearDialog = true },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        )
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -376,16 +290,16 @@ fun SettingsScreen(
                 }
             }
 
+            // Footer
             item {
                 Text(
-                    "${stringResource(R.string.settings_version)}: 1.0.0",
-                    fontSize = 12.sp,
+                    "${stringResource(R.string.settings_version)} 1.0.0",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-            }
-
-            item {
+                Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
                         val updatedUser = user.copy(
@@ -399,12 +313,10 @@ fun SettingsScreen(
                             focusDndMinutes = focusDuration,
                             calendarId = selectedCalendar?.id ?: -1L
                         )
-
                         scope.launch {
                             onSaveSettings(updatedUser)
-
                             if (selectedLanguage != user.language) {
-                                val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+                                val sp = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
                                 val languageCode = LanguageManager.getLanguageCode(selectedLanguage)
                                 sharedPrefs.edit().putString("language", languageCode).apply()
                                 activity?.recreate()
@@ -413,71 +325,147 @@ fun SettingsScreen(
                             }
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.settings_save),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(stringResource(R.string.settings_save))
                 }
             }
-
             item { Spacer(Modifier.height(40.dp)) }
         }
     }
 }
 
+// --- Helper Composables (PRIVATE to avoid conflicts) ---
+
 @Composable
-fun SettingsSection(
+private fun SettingsCard(
     title: String,
+    icon: ImageVector,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
+    ElevatedCard(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             content()
         }
     }
 }
 
 @Composable
-fun HelpFeatureItem(title: String, description: String) {
-    Column {
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.secondary
+private fun WorkDaysSelector(
+    selectedDays: Set<Int>,
+    onDaysChange: (Set<Int>) -> Unit
+) {
+    val dayNames = listOf(
+        1 to stringResource(R.string.day_sun),
+        2 to stringResource(R.string.day_mon),
+        3 to stringResource(R.string.day_tue),
+        4 to stringResource(R.string.day_wed),
+        5 to stringResource(R.string.day_thu),
+        6 to stringResource(R.string.day_fri),
+        7 to stringResource(R.string.day_sat)
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        dayNames.forEach { (dayNum, dayName) ->
+            val isSelected = selectedDays.contains(dayNum)
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    val newDays = if (isSelected) selectedDays - dayNum else selectedDays + dayNum
+                    onDaysChange(newDays)
+                },
+                label = {
+                    Text(
+                        dayName,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> AppDropdownSelector(
+    label: String,
+    options: List<T>,
+    selectedOption: T,
+    onOptionSelected: (T) -> Unit,
+    displayMapper: (T) -> String
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = displayMapper(selectedOption),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
         )
-        Text(
-            text = description,
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-            lineHeight = 18.sp
-        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(displayMapper(option)) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun getGenderString(context: Context, gender: Gender): String {
+    return when (gender) {
+        Gender.Male -> context.getString(R.string.gender_male)
+        Gender.Female -> context.getString(R.string.gender_female)
+        Gender.NotSpecified -> context.getString(R.string.gender_not_specified)
+    }
+}
+
+private fun getLanguageDisplayName(language: AppLanguage): String {
+    return when (language) {
+        AppLanguage.English -> "English"
+        AppLanguage.Hebrew -> "עברית"
+        AppLanguage.Russian -> "Русский"
     }
 }

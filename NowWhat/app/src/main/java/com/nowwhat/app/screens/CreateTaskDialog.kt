@@ -143,7 +143,7 @@ fun CreateTaskDialog(
                     onExpandedChange = { showProjectDropdown = !showProjectDropdown }
                 ) {
                     OutlinedTextField(
-                        value = selectedProject?.name ?: "",
+                        value = selectedProject?.name ?: "No Project",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(R.string.create_task_project)) },
@@ -152,12 +152,20 @@ fun CreateTaskDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable), // Fixed deprecation
-                        isError = showError && selectedProject == null
+                        isError = false
                     )
                     ExposedDropdownMenu(
                         expanded = showProjectDropdown,
                         onDismissRequest = { showProjectDropdown = false }
                     ) {
+                        // Option for No Project
+                        DropdownMenuItem(
+                            text = { Text("No Project") },
+                            onClick = {
+                                selectedProject = null
+                                showProjectDropdown = false
+                            }
+                        )
                         projects.forEach { project ->
                             DropdownMenuItem(
                                 text = { Text(project.name) },
@@ -236,7 +244,7 @@ fun CreateTaskDialog(
                             "📅 Deadline: " + SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                                 .format(Date(deadline!!))
                         } else {
-                            stringResource(R.string.create_task_deadline)
+                            stringResource(R.string.create_task_deadline) // Uses existing resource
                         }
                     )
                 }
@@ -296,14 +304,10 @@ fun CreateTaskDialog(
                             showError = true
                             errorMessage = context.getString(R.string.create_task_error_name)
                         }
-                        selectedProject == null -> {
-                            showError = true
-                            errorMessage = context.getString(R.string.create_task_error_project)
-                        }
                         else -> {
                             val hours = estimatedHours.toFloatOrNull() ?: 2.0f
                             val newTask = Task(
-                                projectId = selectedProject!!.id,
+                                projectId = selectedProject?.id,
                                 title = taskName.trim(),
                                 description = taskDescription.trim(),
                                 priority = selectedPriority,

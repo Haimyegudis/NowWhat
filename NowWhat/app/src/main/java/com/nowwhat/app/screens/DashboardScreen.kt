@@ -1,4 +1,3 @@
-// NowWhat/app/src/main/java/com/nowwhat/app/screens/DashboardScreen.kt
 package com.nowwhat.app.screens
 
 import androidx.compose.animation.*
@@ -189,7 +188,7 @@ fun DashboardScreen(
                 }
             } else {
                 item {
-                    NoTasksCard()
+                    NoTasksCard(onCreateTask = onCreateTask)
                 }
             }
 
@@ -209,9 +208,7 @@ fun DashboardScreen(
             if (calendarEvents.isNotEmpty()) {
                 item {
                     TodaysScheduleCard(
-                        events = calendarEvents,
-                        userWorkStart = user.startWorkHour,
-                        userWorkEnd = user.endWorkHour
+                        events = calendarEvents
                     )
                 }
             }
@@ -230,8 +227,7 @@ fun DashboardScreen(
                     overallProgress = overallProgress,
                     completedTasks = completedTasks,
                     totalTasks = totalTasks,
-                    tasks = tasks,
-                    onProgressClick = { }
+                    tasks = tasks
                 )
             }
 
@@ -252,8 +248,6 @@ fun DashboardScreen(
         }
     }
 }
-
-// --- Composable Functions ---
 
 @Composable
 fun CapacityCard(
@@ -466,7 +460,6 @@ fun TaskQueueDialog(
                                     }
                                 }
 
-                                // REASON
                                 if (task.urgencyReason.isNotBlank()) {
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
@@ -505,7 +498,6 @@ fun TaskQueueDialog(
     )
 }
 
-// --- AT RISK PROJECTS DIALOG ---
 @Composable
 fun AtRiskProjectsDialog(
     projects: List<Project>,
@@ -576,9 +568,7 @@ fun AtRiskProjectsDialog(
 
 @Composable
 fun TodaysScheduleCard(
-    events: List<CalendarEvent>,
-    userWorkStart: Int,
-    userWorkEnd: Int
+    events: List<CalendarEvent>
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -740,8 +730,7 @@ fun TotalProgressCard(
     overallProgress: Int,
     completedTasks: Int,
     totalTasks: Int,
-    tasks: List<Task>,
-    onProgressClick: () -> Unit
+    tasks: List<Task>
 ) {
     var showIncompleteDialog by remember { mutableStateOf(false) }
 
@@ -935,14 +924,18 @@ fun RecommendedFocusCard(
     }
 }
 
+// -------------------------------------------------------------------------
+// FIX: Replaced custom unicode with standard Material Icons or plain text
+// -------------------------------------------------------------------------
 @Composable
 fun UrgencyBadge(urgency: Urgency, score: Int) {
-    val (text, emoji, color) = when (urgency) {
-        Urgency.Critical -> Triple("Critical", "閥", MaterialTheme.colorScheme.errorContainer)
-        Urgency.VeryHigh -> Triple("Very High", "泛", Color(0xFFFFE0B2))
-        Urgency.High -> Triple("High", "泯", Color(0xFFFFF9C4))
-        Urgency.Medium -> Triple("Medium", "泙", Color(0xFFC8E6C9))
-        Urgency.Low -> Triple("Low", "鳩", Color(0xFFBBDEFB))
+    // Using standard icons instead of "Chinese characters"
+    val (text, icon, color) = when (urgency) {
+        Urgency.Critical -> Triple("Critical", Icons.Default.Dangerous, MaterialTheme.colorScheme.errorContainer)
+        Urgency.VeryHigh -> Triple("Very High", Icons.Default.Warning, Color(0xFFFFE0B2))
+        Urgency.High -> Triple("High", Icons.Default.PriorityHigh, Color(0xFFFFF9C4))
+        Urgency.Medium -> Triple("Medium", Icons.Default.HorizontalRule, Color(0xFFC8E6C9))
+        Urgency.Low -> Triple("Low", Icons.Default.ArrowDownward, Color(0xFFBBDEFB))
     }
 
     Surface(
@@ -954,7 +947,12 @@ fun UrgencyBadge(urgency: Urgency, score: Int) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(emoji, fontSize = 14.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = Color.Black
+            )
             Text(
                 "$text ($score)",
                 fontSize = 12.sp,
@@ -966,7 +964,7 @@ fun UrgencyBadge(urgency: Urgency, score: Int) {
 }
 
 @Composable
-fun NoTasksCard() {
+fun NoTasksCard(onCreateTask: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -987,11 +985,9 @@ fun NoTasksCard() {
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.dashboard_create_task),
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Button(onClick = onCreateTask) {
+                Text(stringResource(R.string.dashboard_create_task))
+            }
         }
     }
 }

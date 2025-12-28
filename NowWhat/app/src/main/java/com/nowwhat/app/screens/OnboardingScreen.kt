@@ -9,10 +9,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,7 +47,7 @@ fun OnboardingScreen(
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
 
-    // Calendar Repo & Permissions
+    // --- Calendar Repo & Permissions ---
     val calendarRepository = remember { CalendarRepository(context) }
     var availableCalendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
     var selectedCalendar by remember { mutableStateOf<CalendarInfo?>(null) }
@@ -62,10 +70,12 @@ fun OnboardingScreen(
         }
     }
 
+    // --- Language Logic ---
     val sharedPrefs = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
     val initialLanguageCode = sharedPrefs.getString("language", "en") ?: "en"
     val initialLanguage = LanguageManager.getAppLanguage(initialLanguageCode)
 
+    // --- State ---
     var name by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf(Gender.NotSpecified) }
@@ -75,7 +85,7 @@ fun OnboardingScreen(
     var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5)) }
     var focusDndDuration by remember { mutableIntStateOf(30) }
 
-    // Handle language change
+    // Handle language change immediately
     LaunchedEffect(selectedLanguage) {
         val newLanguageCode = LanguageManager.getLanguageCode(selectedLanguage)
         val currentLanguageCode = sharedPrefs.getString("language", "en")
@@ -102,29 +112,46 @@ fun OnboardingScreen(
         )
     }
 
+    val isFormValid = name.isNotBlank() && role.isNotBlank()
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        // תוקן: אימוג'י חללית במקום הטקסט המשובש
-                        Text(
-                            "🚀 " + stringResource(R.string.onboarding_welcome),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            stringResource(R.string.onboarding_subtitle),
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            fontSize = 14.sp
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    if (isFormValid) {
+                        val user = UserProfile(
+                            name = name,
+                            role = role,
+                            gender = selectedGender,
+                            language = selectedLanguage,
+                            startWorkHour = startHour,
+                            endWorkHour = endHour,
+                            workDays = selectedDays,
+                            focusModeDndDuration = focusDndDuration,
+                            focusDndMinutes = focusDndDuration,
+                            streak = 0,
+                            breakReminder = true,
+                            calendarId = selectedCalendar?.id ?: -1L
+                        )
+                        scope.launch {
+                            userPreferences.saveUserProfile(user)
+                            onFinish()
+                        }
+                    }
+                },
+                containerColor = if (isFormValid) MaterialTheme.colorScheme.primary else Color.Gray,
+                contentColor = if (isFormValid) MaterialTheme.colorScheme.onPrimary else Color.White
+            ) {
+                Icon(Icons.Default.ArrowForward, contentDescription = "Start")
+            }
         }
     ) { padding ->
         LazyColumn(
@@ -135,153 +162,86 @@ fun OnboardingScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                Text(
-                    text = stringResource(R.string.onboarding_title),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-
-            // 1. Name
-            item {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.onboarding_name_label)) },
-                    placeholder = { Text(stringResource(R.string.onboarding_name_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-
-            // 2. Role
-            item {
-                OutlinedTextField(
-                    value = role,
-                    onValueChange = { role = it },
-                    label = { Text(stringResource(R.string.onboarding_role_label)) },
-                    placeholder = { Text(stringResource(R.string.onboarding_role_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-
-            // 3. Gender Dropdown
-            item {
-                AppDropdownSelector(
-                    label = stringResource(R.string.onboarding_gender_label),
-                    options = Gender.values().toList(),
-                    selectedOption = selectedGender,
-                    onOptionSelected = { selectedGender = it },
-                    displayMapper = { getGenderString(context, it) }
-                )
-            }
-
-            // 4. Language Dropdown
-            item {
-                AppDropdownSelector(
-                    label = stringResource(R.string.onboarding_language_label),
-                    options = AppLanguage.values().toList(),
-                    selectedOption = selectedLanguage,
-                    onOptionSelected = { selectedLanguage = it },
-                    displayMapper = { getLanguageDisplayName(it) }
-                )
-            }
-
-            // --- Calendar Sync Dropdown ---
-            item {
                 Column {
                     Text(
-                        text = "Calendar Sync",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onBackground
+                        text = stringResource(R.string.onboarding_welcome),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(Modifier.height(4.dp))
-                    if (availableCalendars.isEmpty()) {
-                        Text(
-                            "No calendars found or permission denied.",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
-                        Button(onClick = { permissionLauncher.launch(Manifest.permission.READ_CALENDAR) }) {
-                            Text("Grant Permission")
-                        }
-                    } else {
-                        val allOption = CalendarInfo(-1L, "All Calendars", "", "", 0, true)
-                        val calendarOptions = listOf(allOption) + availableCalendars
-
-                        val currentSelection = selectedCalendar ?: allOption
-
-                        AppDropdownSelector(
-                            label = "Select Calendar",
-                            options = calendarOptions,
-                            selectedOption = currentSelection,
-                            onOptionSelected = { selectedCalendar = if (it.id == -1L) null else it },
-                            displayMapper = {
-                                if (it.id == -1L) "All Calendars"
-                                else "${it.displayName} (${it.accountName})"
-                            }
-                        )
-                    }
+                    Text(
+                        text = stringResource(R.string.onboarding_subtitle),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
             }
 
+            // --- Card 1: Personal Info ---
             item {
-                Column {
-                    // תוקן: אימוג'י שעון
-                    Text(
-                        text = "⏰ " + stringResource(R.string.onboarding_work_hours),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                OnboardingCard(title = "Who are you?", icon = Icons.Default.Person) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text(stringResource(R.string.onboarding_name_label)) },
+                        placeholder = { Text(stringResource(R.string.onboarding_name_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
                     Spacer(Modifier.height(8.dp))
-                    Row(
+                    OutlinedTextField(
+                        value = role,
+                        onValueChange = { role = it },
+                        label = { Text(stringResource(R.string.onboarding_role_label)) },
+                        placeholder = { Text(stringResource(R.string.onboarding_role_hint)) },
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { startTimePicker.show() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(R.string.time_start), fontSize = 12.sp)
-                                Text(
-                                    String.format("%02d:00", startHour),
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                        singleLine = true
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.weight(1f)) {
+                            AppDropdownSelector(
+                                label = stringResource(R.string.onboarding_gender_label),
+                                options = Gender.values().toList(),
+                                selectedOption = selectedGender,
+                                onOptionSelected = { selectedGender = it },
+                                displayMapper = { getGenderString(context, it) }
+                            )
                         }
-
-                        OutlinedButton(
-                            onClick = { endTimePicker.show() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(R.string.time_end), fontSize = 12.sp)
-                                Text(
-                                    String.format("%02d:00", endHour),
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                        Box(Modifier.weight(1f)) {
+                            AppDropdownSelector(
+                                label = stringResource(R.string.onboarding_language_label),
+                                options = AppLanguage.values().toList(),
+                                selectedOption = selectedLanguage,
+                                onOptionSelected = { selectedLanguage = it },
+                                displayMapper = { getLanguageDisplayName(it) }
+                            )
                         }
                     }
                 }
             }
 
+            // --- Card 2: Work Preferences ---
             item {
-                Column {
-                    // תוקן: אימוג'י לוח שנה
-                    Text(
-                        text = "📅 " + stringResource(R.string.onboarding_work_days),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                OnboardingCard(title = "Work Preferences", icon = Icons.Default.Work) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { startTimePicker.show() },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text("${stringResource(R.string.time_start)}: ${String.format("%02d:00", startHour)}")
+                        }
+                        Button(
+                            onClick = { endTimePicker.show() },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text("${stringResource(R.string.time_end)}: ${String.format("%02d:00", endHour)}")
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.onboarding_work_days), fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     WorkDaysSelector(
                         selectedDays = selectedDays,
@@ -290,68 +250,72 @@ fun OnboardingScreen(
                 }
             }
 
-            // --- Focus Duration Dropdown ---
+            // --- Card 3: Setup & Integrations ---
             item {
-                // תוקן: אימוג'י פוקוס/יוגה
-                AppDropdownSelector(
-                    label = "🧘 " + stringResource(R.string.onboarding_focus_dnd),
-                    options = listOf(15, 30, 45, 60, 90, 120),
-                    selectedOption = focusDndDuration,
-                    onOptionSelected = { focusDndDuration = it },
-                    displayMapper = { "$it minutes" }
-                )
-            }
-
-            item {
-                Spacer(Modifier.height(20.dp))
-                Button(
-                    onClick = {
-                        if (name.isNotBlank() && role.isNotBlank()) {
-                            val user = UserProfile(
-                                name = name,
-                                role = role,
-                                gender = selectedGender,
-                                language = selectedLanguage,
-                                startWorkHour = startHour,
-                                endWorkHour = endHour,
-                                workDays = selectedDays,
-                                focusModeDndDuration = focusDndDuration,
-                                focusDndMinutes = focusDndDuration,
-                                streak = 0,
-                                breakReminder = true,
-                                calendarId = selectedCalendar?.id ?: -1L
-                            )
-                            scope.launch {
-                                userPreferences.saveUserProfile(user)
-                                onFinish()
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = name.isNotBlank() && role.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                OnboardingCard(title = "Setup & Integrations", icon = Icons.Default.CalendarToday) {
+                    val opts = listOf(CalendarInfo(-1, "All Calendars", "", "", 0, true)) + availableCalendars
+                    AppDropdownSelector(
+                        label = "Primary Calendar",
+                        options = opts,
+                        selectedOption = selectedCalendar ?: opts.first(),
+                        onOptionSelected = { selectedCalendar = if (it.id == -1L) null else it },
+                        displayMapper = { it.displayName }
                     )
-                ) {
-                    Text(
-                        stringResource(R.string.onboarding_start_button),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                    Spacer(Modifier.height(12.dp))
+                    AppDropdownSelector(
+                        label = stringResource(R.string.onboarding_focus_dnd),
+                        options = listOf(15, 30, 45, 60, 90, 120),
+                        selectedOption = focusDndDuration,
+                        onOptionSelected = { focusDndDuration = it },
+                        displayMapper = { "$it min" }
                     )
                 }
             }
 
-            item {
-                Spacer(Modifier.height(40.dp))
+            item { Spacer(Modifier.height(80.dp)) }
+        }
+    }
+}
+
+// --- Helper Composables (PRIVATE to avoid conflicts) ---
+
+@Composable
+private fun OnboardingCard(
+    title: String,
+    icon: ImageVector,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    ElevatedCard(
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            content()
         }
     }
 }
 
 @Composable
-fun WorkDaysSelector(
+private fun WorkDaysSelector(
     selectedDays: Set<Int>,
     onDaysChange: (Set<Int>) -> Unit
 ) {
@@ -370,33 +334,83 @@ fun WorkDaysSelector(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         dayNames.forEach { (dayNum, dayName) ->
+            val isSelected = selectedDays.contains(dayNum)
             FilterChip(
-                selected = selectedDays.contains(dayNum),
+                selected = isSelected,
                 onClick = {
-                    val newDays = if (selectedDays.contains(dayNum)) {
-                        selectedDays - dayNum
-                    } else {
-                        selectedDays + dayNum
-                    }
+                    val newDays = if (isSelected) selectedDays - dayNum else selectedDays + dayNum
                     onDaysChange(newDays)
                 },
                 label = {
                     Text(
                         dayName,
                         fontSize = 12.sp,
-                        fontWeight = if (selectedDays.contains(dayNum)) {
-                            FontWeight.Bold
-                        } else {
-                            FontWeight.Normal
-                        }
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> AppDropdownSelector(
+    label: String,
+    options: List<T>,
+    selectedOption: T,
+    onOptionSelected: (T) -> Unit,
+    displayMapper: (T) -> String
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = displayMapper(selectedOption),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(displayMapper(option)) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun getGenderString(context: Context, gender: Gender): String {
+    return when (gender) {
+        Gender.Male -> context.getString(R.string.gender_male)
+        Gender.Female -> context.getString(R.string.gender_female)
+        Gender.NotSpecified -> context.getString(R.string.gender_not_specified)
+    }
+}
+
+private fun getLanguageDisplayName(language: AppLanguage): String {
+    return when (language) {
+        AppLanguage.English -> "English"
+        AppLanguage.Hebrew -> "עברית"
+        AppLanguage.Russian -> "Русский"
     }
 }

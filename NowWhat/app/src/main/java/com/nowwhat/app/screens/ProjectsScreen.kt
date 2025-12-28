@@ -62,7 +62,8 @@ fun ProjectsScreen(
     val activeProjects = projects.filter { !it.isCompleted && !it.isArchived }
     val completedProjects = projects.filter { it.isCompleted && !it.isArchived }
 
-    val standaloneTasks = tasks.filter { it.projectId == null && !it.isArchived }
+    // Adjusted filtering to include tasks with null projectId
+    val standaloneTasks = tasks.filter { (it.projectId == null || it.projectId == 0) && !it.isArchived }
     val activeStandaloneTasks = standaloneTasks.filter { !it.isDone }
     val completedStandaloneTasks = standaloneTasks.filter { it.isDone }
 
@@ -210,7 +211,8 @@ fun ProjectList(
                     Text("No independent tasks", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
             } else {
-                items(standaloneTasks, key = { "task_${it.id}" }) { task ->                    TaskCard(
+                items(standaloneTasks, key = { "task_${it.id}" }) { task ->
+                    TaskCard(
                         task = task,
                         subTasks = subTasks.filter { it.taskId == task.id },
                         isExpanded = expandedTaskId == task.id,
@@ -250,7 +252,8 @@ fun ProjectList(
                 )
             }
         } else {
-            items(projects, key = { "project_${it.id}" }) { project ->                ProjectCard(
+            items(projects, key = { "project_${it.id}" }) { project ->
+                ProjectCard(
                     project = project,
                     tasks = tasks.filter { it.projectId == project.id && !it.isArchived },
                     subTasks = subTasks,
@@ -314,17 +317,17 @@ fun ProjectCard(
             when (dismissValue) {
                 SwipeToDismissBoxValue.StartToEnd -> {
                     if (!isCompletedTab) {
-                        onProjectCompleted()          // ללא project!
+                        onProjectCompleted()
                     } else {
-                        onArchiveProject(project)     // עם project
+                        onArchiveProject(project)
                     }
                     true
                 }
                 SwipeToDismissBoxValue.EndToStart -> {
                     if (!isCompletedTab) {
-                        onArchiveProject(project)     // עם project
+                        onArchiveProject(project)
                     } else {
-                        onRestoreProject(project)     // עם project
+                        onRestoreProject(project)
                     }
                     true
                 }
