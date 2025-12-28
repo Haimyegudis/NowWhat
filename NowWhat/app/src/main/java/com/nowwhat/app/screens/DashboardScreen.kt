@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -79,7 +78,6 @@ fun DashboardScreen(
 
     // Dialog States
     var showQueueDialog by remember { mutableStateOf(false) }
-    var showHelpDialog by remember { mutableStateOf(false) }
     var showCriticalDialog by remember { mutableStateOf(false) }
     var showAtRiskDialog by remember { mutableStateOf(false) }
 
@@ -127,15 +125,6 @@ fun DashboardScreen(
         )
     }
 
-    if (showHelpDialog) {
-        AlertDialog(
-            onDismissRequest = { showHelpDialog = false },
-            title = { Text("App Help & Guide") },
-            text = { Text("Capacity now scans your calendar. Meetings outside work hours won't reduce your capacity.") },
-            confirmButton = { TextButton(onClick = { showHelpDialog = false }) { Text("Got it") } }
-        )
-    }
-
     // --- UI CONTENT ---
 
     Scaffold(
@@ -166,9 +155,6 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHelpDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.Help, "Help", tint = MaterialTheme.colorScheme.onPrimary)
-                    }
                     IconButton(onClick = onNavigateToCapacity) {
                         Icon(Icons.Default.CalendarMonth, "Capacity", tint = MaterialTheme.colorScheme.onPrimary)
                     }
@@ -952,11 +938,11 @@ fun RecommendedFocusCard(
 @Composable
 fun UrgencyBadge(urgency: Urgency, score: Int) {
     val (text, emoji, color) = when (urgency) {
-        Urgency.Critical -> Triple("Critical", "🔴", MaterialTheme.colorScheme.errorContainer)
-        Urgency.VeryHigh -> Triple("Very High", "🟠", Color(0xFFFFE0B2))
-        Urgency.High -> Triple("High", "🟡", Color(0xFFFFF9C4))
-        Urgency.Medium -> Triple("Medium", "🟢", Color(0xFFC8E6C9))
-        Urgency.Low -> Triple("Low", "🔵", Color(0xFFBBDEFB))
+        Urgency.Critical -> Triple("Critical", "閥", MaterialTheme.colorScheme.errorContainer)
+        Urgency.VeryHigh -> Triple("Very High", "泛", Color(0xFFFFE0B2))
+        Urgency.High -> Triple("High", "泯", Color(0xFFFFF9C4))
+        Urgency.Medium -> Triple("Medium", "泙", Color(0xFFC8E6C9))
+        Urgency.Low -> Triple("Low", "鳩", Color(0xFFBBDEFB))
     }
 
     Surface(

@@ -1,6 +1,10 @@
 package com.nowwhat.app.viewmodel
 
+import android.app.AlarmManager
 import android.app.Application
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +14,7 @@ import com.nowwhat.app.data.CalendarEvent
 import com.nowwhat.app.data.CalendarRepository
 import com.nowwhat.app.data.UserPreferences
 import com.nowwhat.app.model.*
+import com.nowwhat.app.utils.AlarmReceiver
 import com.nowwhat.app.utils.NotificationScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -338,9 +343,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val id = dao.insertTask(task)
-                task.reminderTime?.let {
-                    notificationScheduler.scheduleReminder(id.toInt(), "Task Due: ${task.title}", it)
+
+                // שימוש בלוגיקה החדשה להתראות
+                if (task.reminderTime != null) {
+                    scheduleTaskAlarm(task.copy(id = id.toInt()))
                 }
+
                 if (task.deadline != null && !task.isDone) {
                     notificationScheduler.scheduleDeadlineReminder(
                         id.toInt(),
@@ -351,6 +359,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating task", e)
+            }
+        }
+    }
+
+    // פונקציה ייעודית לעדכון התראה מהמסך החדש
+    fun updateTaskReminder(task: Task, newReminderTime: Long?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updatedTask = task.copy(reminderTime = newReminderTime)
+                dao.updateTask(updatedTask)
+
+                if (newReminderTime != null) {
+                    scheduleTaskAlarm(updatedTask)
+                } else {
+                    cancelTaskAlarm(task)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating task reminder", e)
             }
         }
     }
@@ -373,18 +399,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                // עדכון התראה רגילה - שימוש בלוגיקה החדשה
                 if (task.reminderTime != null) {
                     if (task.isDone || task.isArchived) {
-                        notificationScheduler.cancelReminder(task.id)
+                        cancelTaskAlarm(task)
                     } else {
-                        notificationScheduler.scheduleReminder(
-                            task.id,
-                            "Task Reminder: ${task.title}",
-                            task.reminderTime
-                        )
+                        scheduleTaskAlarm(task)
                     }
                 } else {
-                    notificationScheduler.cancelReminder(task.id)
+                    cancelTaskAlarm(task)
                 }
 
             } catch (e: Exception) {
@@ -397,7 +420,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.deleteTask(task)
-                notificationScheduler.cancelReminder(task.id)
+                cancelTaskAlarm(task) // ביטול ההתראה החדשה
                 notificationScheduler.cancelDeadlineReminder(task.id)
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting task", e)
@@ -409,7 +432,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 dao.updateTask(task.copy(isArchived = true))
-                notificationScheduler.cancelReminder(task.id)
+                cancelTaskAlarm(task)
                 notificationScheduler.cancelDeadlineReminder(task.id)
             } catch (e: Exception) {
                 Log.e(TAG, "Error archiving task", e)
@@ -435,6 +458,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         isProject = false
                     )
                 }
+
+                // שחזור התראה אם קיימת ורלוונטית
+                if (updated.reminderTime != null && updated.reminderTime > System.currentTimeMillis()) {
+                    scheduleTaskAlarm(updated)
+                }
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error restoring task", e)
             }
@@ -458,12 +487,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 dao.updateTask(updated)
 
                 if (newIsDone) {
-                    notificationScheduler.cancelReminder(task.id)
+                    cancelTaskAlarm(task)
                     notificationScheduler.cancelDeadlineReminder(task.id)
                 } else {
                     task.reminderTime?.let {
                         if (it > System.currentTimeMillis()) {
-                            notificationScheduler.scheduleReminder(task.id, "Task Due: ${task.title}", it)
+                            scheduleTaskAlarm(task)
                         }
                     }
                     task.deadline?.let {
@@ -510,7 +539,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 dao.updateTask(updated)
 
-                notificationScheduler.cancelReminder(task.id)
+                cancelTaskAlarm(task)
                 notificationScheduler.cancelDeadlineReminder(task.id)
 
                 updateStreak()
@@ -773,5 +802,58 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e(TAG, "Error clearing data", e)
             }
         }
+    }
+
+    // --- Private Alarm Helpers (שימוש ב-AlarmReceiver החדש) ---
+
+    private fun scheduleTaskAlarm(task: Task) {
+        if (task.reminderTime == null) return
+
+        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(getApplication(), AlarmReceiver::class.java).apply {
+            putExtra(AlarmReceiver.EXTRA_TASK_ID, task.id)
+            putExtra(AlarmReceiver.EXTRA_TASK_TITLE, task.title)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            getApplication(),
+            task.id,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        task.reminderTime,
+                        pendingIntent
+                    )
+                } else {
+                    Log.w("MainViewModel", "Permission denied for Exact Alarms")
+                }
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    task.reminderTime,
+                    pendingIntent
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.e("MainViewModel", "Security Exception scheduling alarm", e)
+        }
+    }
+
+    private fun cancelTaskAlarm(task: Task) {
+        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(getApplication(), AlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            getApplication(),
+            task.id,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
     }
 }

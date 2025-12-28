@@ -179,6 +179,17 @@
     <string name="settings_save">Сохранить изменения</string>
     <string name="settings_saved">Настройки успешно сохранены</string>
 
+    <string name="settings_help">Помощь и о приложении</string>
+    <string name="help_title">Что умеет NowWhat?</string>
+    <string name="help_intro">NowWhat оптимизирует ваш рабочий процесс, помогая решить, что делать дальше.</string>
+    <string name="help_feature_1_title">🚀 Умная приоритизация</string>
+    <string name="help_feature_1_desc">Автоматический расчет срочности задач на основе дедлайнов и рабочих часов.</string>
+    <string name="help_feature_2_title">⏱️ Режим фокуса</string>
+    <string name="help_feature_2_desc">Встроенный таймер для работы без отвлечений и повышения продуктивности.</string>
+    <string name="help_feature_3_title">📊 Глубокая аналитика</string>
+    <string name="help_feature_3_desc">Анализ ваших рабочих привычек, точности оценок и загруженности.</string>
+    <string name="help_close">Понятно</string>
+
     <string name="stats_title">Статистика</string>
     <string name="stats_current_streak">Текущая серия</string>
     <string name="stats_longest_streak">Рекордная серия</string>

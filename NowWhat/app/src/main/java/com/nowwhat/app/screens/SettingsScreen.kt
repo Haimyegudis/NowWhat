@@ -50,7 +50,9 @@ fun SettingsScreen(
     var endHour by remember { mutableIntStateOf(user.endWorkHour) }
     var selectedDays by remember { mutableStateOf(user.workDays) }
     var focusDuration by remember { mutableIntStateOf(user.focusDndMinutes) }
+
     var showClearDialog by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) } // Added state for Help Dialog
     var showSavedSnackbar by remember { mutableStateOf(false) }
 
     // Calendar Logic
@@ -80,6 +82,52 @@ fun SettingsScreen(
             context,
             { _, hour, _ -> endHour = hour },
             endHour, 0, true
+        )
+    }
+
+    // --- Help Dialog ---
+    if (showHelpDialog) {
+        AlertDialog(
+            onDismissRequest = { showHelpDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.help_title),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.help_intro),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    HelpFeatureItem(
+                        title = stringResource(R.string.help_feature_1_title),
+                        description = stringResource(R.string.help_feature_1_desc)
+                    )
+                    HelpFeatureItem(
+                        title = stringResource(R.string.help_feature_2_title),
+                        description = stringResource(R.string.help_feature_2_desc)
+                    )
+                    HelpFeatureItem(
+                        title = stringResource(R.string.help_feature_3_title),
+                        description = stringResource(R.string.help_feature_3_desc)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHelpDialog = false }) {
+                    Text(stringResource(R.string.help_close), fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
         )
     }
 
@@ -127,10 +175,16 @@ fun SettingsScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { showHelpDialog = true }) {
+                        Icon(Icons.Default.Info, contentDescription = "Help")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -144,6 +198,30 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { Spacer(Modifier.height(8.dp)) }
+
+            // Help Banner Button
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    onClick = { showHelpDialog = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.settings_help),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
 
             item {
                 SettingsSection(title = stringResource(R.string.settings_profile)) {
@@ -366,7 +444,6 @@ fun SettingsSection(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            // תיקון: שימוש בצבע דינמי של ה-Theme במקום לבן קשיח
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
@@ -380,10 +457,27 @@ fun SettingsSection(
                 title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                // תיקון: שימוש בצבע דינמי במקום שחור
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             content()
         }
+    }
+}
+
+@Composable
+fun HelpFeatureItem(title: String, description: String) {
+    Column {
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        Text(
+            text = description,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+            lineHeight = 18.sp
+        )
     }
 }

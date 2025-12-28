@@ -440,6 +440,10 @@ fun TaskDetailScreenWrapper(
             },
             onClearWaitingFor = {
                 viewModel.updateTask(task.copy(waitingFor = null))
+            },
+            // כאן חיברנו את הפונקציה החדשה
+            onUpdateReminder = { time ->
+                viewModel.updateTaskReminder(task, time)
             }
         )
     }

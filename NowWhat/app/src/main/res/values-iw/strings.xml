@@ -176,6 +176,17 @@
     <string name="settings_save">שמור שינויים</string>
     <string name="settings_saved">ההגדרות נשמרו בהצלחה</string>
 
+    <string name="settings_help">עזרה ואודות</string>
+    <string name="help_title">מה האפליקציה יודעת לעשות?</string>
+    <string name="help_intro">NowWhat מייעלת את העבודה שלך ועוזרת לך להחליט מה לעשות עכשיו.</string>
+    <string name="help_feature_1_title">🚀 תעדוף חכם</string>
+    <string name="help_feature_1_desc">חישוב אוטומטי של דחיפות משימות בהתבסס על דדליינים ושעות העבודה שלך.</string>
+    <string name="help_feature_2_title">⏱️ מצב פוקוס</string>
+    <string name="help_feature_2_desc">טיימר מובנה למניעת הסחות דעת ושיפור הפרודוקטיביות.</string>
+    <string name="help_feature_3_title">📊 תובנות עמוקות</string>
+    <string name="help_feature_3_desc">ניתוח הרגלי העבודה, דיוק הערכות הזמנים והקיבולת היומית שלך.</string>
+    <string name="help_close">הבנתי</string>
+
     <string name="stats_title">סטטיסטיקות</string>
     <string name="stats_current_streak">רצף נוכחי</string>
     <string name="stats_longest_streak">רצף הכי ארוך</string>

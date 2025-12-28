@@ -1,5 +1,13 @@
 package com.nowwhat.app.screens
 
+import android.Manifest
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,11 +23,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.nowwhat.app.R
 import com.nowwhat.app.model.*
 import java.text.SimpleDateFormat
@@ -38,13 +48,73 @@ fun TaskDetailScreen(
     onStartFocus: () -> Unit,
     onAddSubTask: () -> Unit,
     onToggleSubTaskDone: (SubTask) -> Unit,
-    onClearWaitingFor: () -> Unit
+    onClearWaitingFor: () -> Unit,
+    onUpdateReminder: (Long?) -> Unit // פרמטר חדש לעדכון התראה
 ) {
-    // זיהוי מצב חשוך לשיפור הנראות
     val isDarkMode = isSystemInDarkTheme()
+    val context = LocalContext.current
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAutoTaskCompleteDialog by remember { mutableStateOf(false) }
+
+    // --- לוגיקה של התראות (Reminder) ---
+    val reminderCalendar = remember { Calendar.getInstance() }
+
+    fun showReminderPickers() {
+        // אם כבר יש התראה, נתחיל מהזמן שלה. אם לא, מהזמן הנוכחי.
+        val currentRef = if (task.reminderTime != null) Date(task.reminderTime) else Date()
+        val cal = Calendar.getInstance().apply { time = currentRef }
+
+        val timePicker = TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                reminderCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                reminderCalendar.set(Calendar.MINUTE, minute)
+                reminderCalendar.set(Calendar.SECOND, 0)
+                // עדכון ה-ViewModel
+                onUpdateReminder(reminderCalendar.timeInMillis)
+            },
+            cal.get(Calendar.HOUR_OF_DAY),
+            cal.get(Calendar.MINUTE),
+            true
+        )
+
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                reminderCalendar.set(year, month, dayOfMonth)
+                timePicker.show()
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    // בקשת הרשאה להתראות (Android 13+)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                showReminderPickers()
+            } else {
+                Toast.makeText(context, "Notification permission required for reminders", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
+    val onRequestEditReminder = {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                showReminderPickers()
+            } else {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            showReminderPickers()
+        }
+    }
+    // ------------------------------------
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -206,7 +276,11 @@ fun TaskDetailScreen(
             }
 
             item {
-                TaskDetailsCard(task = task)
+                TaskDetailsCard(
+                    task = task,
+                    onEditReminder = onRequestEditReminder,
+                    onDeleteReminder = { onUpdateReminder(null) }
+                )
             }
 
             item {
@@ -275,7 +349,6 @@ fun TaskDetailScreen(
 
 @Composable
 fun TaskStatusCard(task: Task, onToggleDone: () -> Unit) {
-    // כרטיסייה ראשית - בדרך כלל בהירה גם בדארק, אבל נתאים:
     val containerColor = if (task.isDone) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceVariant
 
     Card(
@@ -326,7 +399,11 @@ fun TaskStatusCard(task: Task, onToggleDone: () -> Unit) {
 }
 
 @Composable
-fun TaskDetailsCard(task: Task) {
+fun TaskDetailsCard(
+    task: Task,
+    onEditReminder: () -> Unit,
+    onDeleteReminder: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -368,6 +445,64 @@ fun TaskDetailsCard(task: Task) {
                     value = "📅 ${dateFormat.format(Date(deadline))}"
                 )
             }
+
+            // --- שורת ההתראה ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Reminder",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+
+                if (task.reminderTime != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "🔔 ${SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(task.reminderTime))}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(
+                            onClick = onEditReminder,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Reminder",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onDeleteReminder,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Delete Reminder",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                } else {
+                    TextButton(
+                        onClick = onEditReminder,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.height(24.dp)
+                    ) {
+                        Text("Add Reminder", fontSize = 14.sp)
+                    }
+                }
+            }
+            // ------------------
 
             DetailRow(
                 label = "Created",
@@ -505,7 +640,6 @@ fun TimeItem(label: String, minutes: Int, color: Color) {
 
 @Composable
 fun SubTaskItem(subTask: SubTask, isDarkMode: Boolean, onToggleDone: () -> Unit) {
-    // תיקון צבעים ל-SubTasks
     val containerColor = if (subTask.isDone) {
         if (isDarkMode) Color(0xFF1B5E20) else Color(0xFFE8F5E9)
     } else {
@@ -571,7 +705,6 @@ fun SwipeableSubTaskItem(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.StartToEnd) {
                 onToggleDone()
-                // מחזירים false כדי שהגרירה תקפוץ חזרה
                 false
             } else {
                 false
