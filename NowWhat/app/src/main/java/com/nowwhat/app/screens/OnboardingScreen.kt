@@ -35,6 +35,7 @@ import com.nowwhat.app.data.UserPreferences
 import com.nowwhat.app.model.AppLanguage
 import com.nowwhat.app.model.Gender
 import com.nowwhat.app.model.UserProfile
+import com.nowwhat.app.utils.StringUtils
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -200,21 +201,21 @@ fun OnboardingScreen(
                     Spacer(Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.weight(1f)) {
-                            AppDropdownSelector(
+                            OnboardingDropdownSelector(
                                 label = stringResource(R.string.onboarding_gender_label),
                                 options = Gender.values().toList(),
                                 selectedOption = selectedGender,
                                 onOptionSelected = { selectedGender = it },
-                                displayMapper = { getGenderString(context, it) }
+                                displayMapper = { StringUtils.getGenderString(context, it) }
                             )
                         }
                         Box(Modifier.weight(1f)) {
-                            AppDropdownSelector(
+                            OnboardingDropdownSelector(
                                 label = stringResource(R.string.onboarding_language_label),
                                 options = AppLanguage.values().toList(),
                                 selectedOption = selectedLanguage,
                                 onOptionSelected = { selectedLanguage = it },
-                                displayMapper = { getLanguageDisplayName(it) }
+                                displayMapper = { StringUtils.getLanguageDisplayName(it) }
                             )
                         }
                     }
@@ -243,7 +244,7 @@ fun OnboardingScreen(
                     Spacer(Modifier.height(16.dp))
                     Text(stringResource(R.string.onboarding_work_days), fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
-                    WorkDaysSelector(
+                    OnboardingWorkDaysSelector(
                         selectedDays = selectedDays,
                         onDaysChange = { selectedDays = it }
                     )
@@ -254,7 +255,7 @@ fun OnboardingScreen(
             item {
                 OnboardingCard(title = "Setup & Integrations", icon = Icons.Default.CalendarToday) {
                     val opts = listOf(CalendarInfo(-1, "All Calendars", "", "", 0, true)) + availableCalendars
-                    AppDropdownSelector(
+                    OnboardingDropdownSelector(
                         label = "Primary Calendar",
                         options = opts,
                         selectedOption = selectedCalendar ?: opts.first(),
@@ -262,7 +263,7 @@ fun OnboardingScreen(
                         displayMapper = { it.displayName }
                     )
                     Spacer(Modifier.height(12.dp))
-                    AppDropdownSelector(
+                    OnboardingDropdownSelector(
                         label = stringResource(R.string.onboarding_focus_dnd),
                         options = listOf(15, 30, 45, 60, 90, 120),
                         selectedOption = focusDndDuration,
@@ -277,7 +278,7 @@ fun OnboardingScreen(
     }
 }
 
-// --- Helper Composables (PRIVATE to avoid conflicts) ---
+// --- Helper Composables (Private) ---
 
 @Composable
 private fun OnboardingCard(
@@ -315,7 +316,7 @@ private fun OnboardingCard(
 }
 
 @Composable
-private fun WorkDaysSelector(
+private fun OnboardingWorkDaysSelector(
     selectedDays: Set<Int>,
     onDaysChange: (Set<Int>) -> Unit
 ) {
@@ -360,7 +361,7 @@ private fun WorkDaysSelector(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T> AppDropdownSelector(
+private fun <T> OnboardingDropdownSelector(
     label: String,
     options: List<T>,
     selectedOption: T,
@@ -396,21 +397,5 @@ private fun <T> AppDropdownSelector(
                 )
             }
         }
-    }
-}
-
-private fun getGenderString(context: Context, gender: Gender): String {
-    return when (gender) {
-        Gender.Male -> context.getString(R.string.gender_male)
-        Gender.Female -> context.getString(R.string.gender_female)
-        Gender.NotSpecified -> context.getString(R.string.gender_not_specified)
-    }
-}
-
-private fun getLanguageDisplayName(language: AppLanguage): String {
-    return when (language) {
-        AppLanguage.English -> "English"
-        AppLanguage.Hebrew -> "עברית"
-        AppLanguage.Russian -> "Русский"
     }
 }

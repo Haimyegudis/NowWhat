@@ -1,3 +1,4 @@
+// CreateTaskDialog.kt
 package com.nowwhat.app.screens
 
 import android.Manifest
@@ -36,7 +37,6 @@ fun CreateTaskDialog(
     var taskName by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
 
-    // Initialize selected project with preSelectedProject or the first one if list has only one
     var selectedProject by remember {
         mutableStateOf<Project?>(
             preSelectedProject ?: if (projects.size == 1) projects.first() else null
@@ -52,7 +52,6 @@ fun CreateTaskDialog(
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Deadline Date Picker
     val deadlineCalendar = Calendar.getInstance()
     if (deadline != null) {
         deadlineCalendar.timeInMillis = deadline!!
@@ -69,7 +68,6 @@ fun CreateTaskDialog(
         deadlineCalendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    // Reminder Logic
     val reminderCalendar = Calendar.getInstance()
     if (reminderTime != null) {
         reminderCalendar.timeInMillis = reminderTime!!
@@ -99,7 +97,6 @@ fun CreateTaskDialog(
         reminderCalendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    // Permission Launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
@@ -151,14 +148,13 @@ fun CreateTaskDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProjectDropdown) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable), // Fixed deprecation
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         isError = false
                     )
                     ExposedDropdownMenu(
                         expanded = showProjectDropdown,
                         onDismissRequest = { showProjectDropdown = false }
                     ) {
-                        // Option for No Project
                         DropdownMenuItem(
                             text = { Text("No Project") },
                             onClick = {
@@ -179,51 +175,15 @@ fun CreateTaskDialog(
                     }
                 }
 
-                Text(
-                    stringResource(R.string.create_task_priority),
-                    style = MaterialTheme.typography.labelMedium
+                PriorityDropdown(
+                    selectedPriority = selectedPriority,
+                    onPrioritySelected = { selectedPriority = it }
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Priority.values().forEach { priority ->
-                        FilterChip(
-                            selected = selectedPriority == priority,
-                            onClick = { selectedPriority = priority },
-                            label = {
-                                Text(
-                                    getPriorityString(priority),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
 
-                Text(
-                    stringResource(R.string.create_task_severity),
-                    style = MaterialTheme.typography.labelMedium
+                SeverityDropdown(
+                    selectedSeverity = selectedSeverity,
+                    onSeveritySelected = { selectedSeverity = it }
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Severity.values().forEach { severity ->
-                        FilterChip(
-                            selected = selectedSeverity == severity,
-                            onClick = { selectedSeverity = severity },
-                            label = {
-                                Text(
-                                    getSeverityString(severity),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
 
                 OutlinedTextField(
                     value = estimatedHours,
@@ -234,7 +194,6 @@ fun CreateTaskDialog(
                     singleLine = true
                 )
 
-                // Deadline Button
                 OutlinedButton(
                     onClick = { deadlineDatePicker.show() },
                     modifier = Modifier.fillMaxWidth()
@@ -244,12 +203,11 @@ fun CreateTaskDialog(
                             "📅 Deadline: " + SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                                 .format(Date(deadline!!))
                         } else {
-                            stringResource(R.string.create_task_deadline) // Uses existing resource
+                            stringResource(R.string.create_task_deadline)
                         }
                     )
                 }
 
-                // Reminder Button
                 OutlinedButton(
                     onClick = {
                         if (Build.VERSION.SDK_INT >= 33) {
@@ -332,6 +290,82 @@ fun CreateTaskDialog(
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PriorityDropdown(
+    selectedPriority: Priority,
+    onPrioritySelected: (Priority) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = getPriorityString(selectedPriority),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.create_task_priority)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            Priority.values().forEach { priority ->
+                DropdownMenuItem(
+                    text = { Text(getPriorityString(priority)) },
+                    onClick = {
+                        onPrioritySelected(priority)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SeverityDropdown(
+    selectedSeverity: Severity,
+    onSeveritySelected: (Severity) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = getSeverityString(selectedSeverity),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.create_task_severity)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            Severity.values().forEach { severity ->
+                DropdownMenuItem(
+                    text = { Text(getSeverityString(severity)) },
+                    onClick = {
+                        onSeveritySelected(severity)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable

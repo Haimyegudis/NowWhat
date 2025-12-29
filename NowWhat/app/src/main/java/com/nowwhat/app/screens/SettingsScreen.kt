@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -28,6 +29,7 @@ import com.nowwhat.app.data.LanguageManager
 import com.nowwhat.app.model.AppLanguage
 import com.nowwhat.app.model.Gender
 import com.nowwhat.app.model.UserProfile
+import com.nowwhat.app.utils.StringUtils
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +57,6 @@ fun SettingsScreen(
     var showHelpDialog by remember { mutableStateOf(false) }
     var showSavedSnackbar by remember { mutableStateOf(false) }
 
-    // Calendar Data
     val calendarRepository = remember { CalendarRepository(context) }
     var availableCalendars by remember { mutableStateOf<List<CalendarInfo>>(emptyList()) }
     var selectedCalendar by remember { mutableStateOf<CalendarInfo?>(null) }
@@ -69,7 +70,6 @@ fun SettingsScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Pickers
     val startTimePicker = TimePickerDialog(
         context, { _, hour, _ -> startHour = hour }, startHour, 0, true
     )
@@ -77,7 +77,6 @@ fun SettingsScreen(
         context, { _, hour, _ -> endHour = hour }, endHour, 0, true
     )
 
-    // Dialogs
     if (showHelpDialog) {
         AlertDialog(
             onDismissRequest = { showHelpDialog = false },
@@ -158,7 +157,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Section 1: Profile
+            // --- Section 1: Profile ---
             item {
                 SettingsCard(
                     title = stringResource(R.string.settings_profile),
@@ -182,28 +181,28 @@ fun SettingsScreen(
                     Spacer(Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.weight(1f)) {
-                            AppDropdownSelector(
+                            SettingsDropdownSelector(
                                 label = stringResource(R.string.settings_gender),
                                 options = Gender.values().toList(),
                                 selectedOption = selectedGender,
                                 onOptionSelected = { selectedGender = it },
-                                displayMapper = { getGenderString(context, it) }
+                                displayMapper = { StringUtils.getGenderString(context, it) }
                             )
                         }
                         Box(Modifier.weight(1f)) {
-                            AppDropdownSelector(
+                            SettingsDropdownSelector(
                                 label = stringResource(R.string.settings_language),
                                 options = AppLanguage.values().toList(),
                                 selectedOption = selectedLanguage,
                                 onOptionSelected = { selectedLanguage = it },
-                                displayMapper = { getLanguageDisplayName(it) }
+                                displayMapper = { StringUtils.getLanguageDisplayName(it) }
                             )
                         }
                     }
                 }
             }
 
-            // Section 2: Work & Calendar
+            // --- Section 2: Work & Calendar ---
             item {
                 SettingsCard(
                     title = stringResource(R.string.settings_work),
@@ -240,7 +239,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(Modifier.height(8.dp))
-                    WorkDaysSelector(
+                    SettingsWorkDaysSelector(
                         selectedDays = selectedDays,
                         onDaysChange = { selectedDays = it }
                     )
@@ -252,7 +251,7 @@ fun SettingsScreen(
                     Text("Calendar Integration", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     val calOptions = listOf(CalendarInfo(-1, "All Calendars", "", "", 0, true)) + availableCalendars
-                    AppDropdownSelector(
+                    SettingsDropdownSelector(
                         label = "Source",
                         options = calOptions,
                         selectedOption = selectedCalendar ?: calOptions.first(),
@@ -262,13 +261,13 @@ fun SettingsScreen(
                 }
             }
 
-            // Section 3: Focus & Data
+            // --- Section 3: Focus & Data ---
             item {
                 SettingsCard(
                     title = stringResource(R.string.settings_focus),
                     icon = Icons.Default.Timer
                 ) {
-                    AppDropdownSelector(
+                    SettingsDropdownSelector(
                         label = stringResource(R.string.settings_focus_duration),
                         options = listOf(15, 30, 45, 60, 90, 120),
                         selectedOption = focusDuration,
@@ -290,14 +289,14 @@ fun SettingsScreen(
                 }
             }
 
-            // Footer
+            // --- Footer ---
             item {
                 Text(
                     "${stringResource(R.string.settings_version)} 1.0.0",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(16.dp))
                 Button(
@@ -318,7 +317,7 @@ fun SettingsScreen(
                             if (selectedLanguage != user.language) {
                                 val sp = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
                                 val languageCode = LanguageManager.getLanguageCode(selectedLanguage)
-                                sharedPrefs.edit().putString("language", languageCode).apply()
+                                sp.edit().putString("language", languageCode).apply()
                                 activity?.recreate()
                             } else {
                                 showSavedSnackbar = true
@@ -335,7 +334,7 @@ fun SettingsScreen(
     }
 }
 
-// --- Helper Composables (PRIVATE to avoid conflicts) ---
+// --- Helper Composables (Private) ---
 
 @Composable
 private fun SettingsCard(
@@ -370,7 +369,7 @@ private fun SettingsCard(
 }
 
 @Composable
-private fun WorkDaysSelector(
+private fun SettingsWorkDaysSelector(
     selectedDays: Set<Int>,
     onDaysChange: (Set<Int>) -> Unit
 ) {
@@ -415,7 +414,7 @@ private fun WorkDaysSelector(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T> AppDropdownSelector(
+private fun <T> SettingsDropdownSelector(
     label: String,
     options: List<T>,
     selectedOption: T,
@@ -451,21 +450,5 @@ private fun <T> AppDropdownSelector(
                 )
             }
         }
-    }
-}
-
-private fun getGenderString(context: Context, gender: Gender): String {
-    return when (gender) {
-        Gender.Male -> context.getString(R.string.gender_male)
-        Gender.Female -> context.getString(R.string.gender_female)
-        Gender.NotSpecified -> context.getString(R.string.gender_not_specified)
-    }
-}
-
-private fun getLanguageDisplayName(language: AppLanguage): String {
-    return when (language) {
-        AppLanguage.English -> "English"
-        AppLanguage.Hebrew -> "עברית"
-        AppLanguage.Russian -> "Русский"
     }
 }

@@ -1,3 +1,4 @@
+// CreateProjectDialog.kt
 package com.nowwhat.app.screens
 
 import android.app.DatePickerDialog
@@ -7,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -86,28 +86,10 @@ fun CreateProjectDialog(
                     maxLines = 5
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.create_task_priority),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Priority.values().forEach { p ->
-                            FilterChip(
-                                selected = priority == p,
-                                onClick = { priority = p },
-                                label = { Text(p.name) },
-                                leadingIcon = if (priority == p) {
-                                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
-                                } else null
-                            )
-                        }
-                    }
-                }
+                ProjectPriorityDropdown(
+                    selectedPriority = priority,
+                    onPrioritySelected = { priority = it }
+                )
 
                 OutlinedTextField(
                     value = deadline?.let {
@@ -153,9 +135,6 @@ fun CreateProjectDialog(
                         isArchived = false
                     )
 
-                    android.util.Log.d("CreateProjectDialog", "Creating project: ${newProject.name}, isCompleted=${newProject.isCompleted}, isArchived=${newProject.isArchived}")
-                    Toast.makeText(context, "Creating project: ${newProject.name}", Toast.LENGTH_SHORT).show()
-
                     onCreateProject(newProject)
                     onDismiss()
                 }
@@ -169,4 +148,53 @@ fun CreateProjectDialog(
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProjectPriorityDropdown(
+    selectedPriority: Priority,
+    onPrioritySelected: (Priority) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = getProjectPriorityString(selectedPriority),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.create_task_priority)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            Priority.values().forEach { priority ->
+                DropdownMenuItem(
+                    text = { Text(getProjectPriorityString(priority)) },
+                    onClick = {
+                        onPrioritySelected(priority)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun getProjectPriorityString(priority: Priority): String {
+    return when (priority) {
+        Priority.Critical -> stringResource(R.string.priority_critical)
+        Priority.Immediate -> stringResource(R.string.priority_immediate)
+        Priority.High -> stringResource(R.string.priority_high)
+        Priority.Medium -> stringResource(R.string.priority_medium)
+        Priority.Low -> stringResource(R.string.priority_low)
+    }
 }
